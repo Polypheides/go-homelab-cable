@@ -1,4 +1,4 @@
-module github.com/clabland/go-homelab-cable
+module github.com/Polypheides/go-homelab-cable
 
 go 1.20
 

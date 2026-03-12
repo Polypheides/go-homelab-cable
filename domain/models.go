@@ -2,33 +2,45 @@ package domain
 
 import (
 	"fmt"
-	"path"
+	"path/filepath"
 
-	"github.com/clabland/go-homelab-cable/network"
+	"github.com/Polypheides/go-homelab-cable/network"
 )
 
 type Channel struct {
-	ID      string `json:"id"`
-	Playing string `json:"playing"`
-	UpNext  string `json:"up_next"`
-	Live    bool   `json:"live"`
+	ID           string `json:"id"`
+	Number       int    `json:"number"`
+	Playing      string `json:"playing"`
+	UpNext       string `json:"up_next,omitempty"`
+	StreamURL    string `json:"stream_url"`
+	Tuned        bool   `json:"tuned"`        // Is this channel showing on the host VLC window?
+	Broadcasting bool   `json:"broadcasting"` // Is the FFmpeg stream active?
 }
 
 type Network struct {
-	Name     string `json:"name"`
-	Owner    string `json:"owner"`
-	CallSign string `json:"call_sign"`
+	Name           string `json:"name"`
+	Owner          string `json:"owner"`
+	CallSign       string `json:"call_sign"`
+	MasterStreamURL string `json:"master_stream_url"`
 }
 
 func ToChannelModel(n *network.Network, c *network.Channel) Channel {
 	return Channel{
-		ID:      c.ID,
-		Playing: path.Base(c.Current()),
-		UpNext:  path.Base(c.UpNext()),
-		Live:    n.Live() == c.ID,
+		ID:           c.ID,
+		Number:       c.Number,
+		Playing:      filepath.Base(c.Current()),
+		UpNext:       filepath.Base(c.UpNext()),
+		StreamURL:    c.BroadcastURL(),
+		Tuned:        n.Live() == c.ID,
+		Broadcasting: true, // In this architecture, added channels are always broadcasting
 	}
 }
 
 func (c Channel) String() string {
-	return fmt.Sprintf("Channel '%s'\nPlaying: %s\nUp Next: %s\nLive: %v\n", c.ID, c.Playing, c.UpNext, c.Live)
+	s := fmt.Sprintf("[CH %d] (%s)\n  Playing: %s\n  Up Next: %s\n  Stream:  %s", 
+		c.Number, c.ID, c.Playing, c.UpNext, c.StreamURL)
+	if c.Tuned {
+		s += fmt.Sprintf("\n  Master:  udp://@127.0.0.1:4999  ← TUNED")
+	}
+	return s
 }

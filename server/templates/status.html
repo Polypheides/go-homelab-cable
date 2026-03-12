@@ -1,1 +1,23 @@
-<div id="status-lcd" class="led led-old" hx-get="/htmx/status" hx-trigger="every 2s" hx-swap="outerHTML"><span>{{ .Playing }}</span></div>
+<div id="status-wrapper">
+    {{ range .Channels }}
+    <article id="appliance-{{ .ID }}" class="appliance" data-id="{{ .ID }}" data-playing="{{ .Playing }}">
+        <div class="logo">
+            {{ $.Name }}<div class="logo-sub">{{ $.Owner }}</div>
+        </div>
+        <div id="status-holder-{{ .ID }}" class="status-holder">
+            <div id="status-lcd-{{ .ID }}" class="status-lcd led led-old">
+                <div class="lcd-content">
+                    <span class="lcd-text">{{ .Playing }}</span>
+                </div>
+            </div>
+        </div>
+        <div id="play-next-{{ .ID }}" class="play-next">
+            <button hx-put="/htmx/channels/{{ .ID }}/next" 
+                    hx-swap="none"
+                    hx-on::after-request="window.location.reload()"
+                    class="metal linear small">></button>
+            <div class="button-indicator"></div>
+        </div>
+    </article>
+    {{ end }}
+</div>

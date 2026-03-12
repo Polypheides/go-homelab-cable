@@ -1,21 +1,28 @@
 package network
 
 import (
-	"github.com/clabland/go-homelab-cable/player"
+	"github.com/Polypheides/go-homelab-cable/player"
 	"github.com/google/uuid"
 )
 
 type Channel struct {
-	ID   string
-	list *player.MediaList
-	p    player.Player
+	ID     string
+	Number int
+	list   *player.MediaList
+	p      player.Player
+	broad  *player.Broadcaster
 }
 
-func NewChannel(list *player.MediaList) *Channel {
-	return &Channel{
-		ID:   uuid.New().String(),
-		list: list,
+func NewChannel(list *player.MediaList, broadcasterPort int, number int) *Channel {
+	c := &Channel{
+		ID:     uuid.New().String(),
+		Number: number,
+		list:   list,
+		broad:  player.NewBroadcaster(list, broadcasterPort),
 	}
+	// Start the background broadcast immediately
+	_ = c.broad.Start()
+	return c
 }
 
 func (c *Channel) PlayWith(p player.Player) error {
@@ -23,13 +30,15 @@ func (c *Channel) PlayWith(p player.Player) error {
 		if err := c.p.Shutdown(); err != nil {
 			return err
 		}
+		c.p = nil
 	}
-	c.p = p
 
 	err := p.Init()
 	if err != nil {
 		return err
 	}
+	
+	c.p = p
 	return p.Play(c.list)
 }
 
@@ -42,6 +51,12 @@ func (c *Channel) Current() string {
 }
 
 func (c *Channel) PlayNext() string {
-	_ = c.p.PlayNext()
+	_ = c.broad.Advance()
+	// If the viewer player is active, it will naturally pick up the stream change 
+	// because it's tuning into the same port.
 	return c.Current()
+}
+
+func (c *Channel) BroadcastURL() string {
+	return c.broad.StreamURL()
 }

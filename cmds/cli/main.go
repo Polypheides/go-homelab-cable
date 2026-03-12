@@ -3,13 +3,13 @@ package main
 import (
 	"encoding/json"
 	"fmt"
-	"log"
 	"os"
 
-	"github.com/clabland/go-homelab-cable/client"
-	"github.com/clabland/go-homelab-cable/network"
-	"github.com/clabland/go-homelab-cable/player"
-	"github.com/clabland/go-homelab-cable/server"
+	"github.com/Polypheides/go-homelab-cable/client"
+	"github.com/Polypheides/go-homelab-cable/domain"
+	"github.com/Polypheides/go-homelab-cable/network"
+	"github.com/Polypheides/go-homelab-cable/player"
+	"github.com/Polypheides/go-homelab-cable/server"
 	cli "github.com/urfave/cli/v2"
 )
 
@@ -20,17 +20,27 @@ func main() {
 				Name:  "server",
 				Usage: "start a homelab cable server",
 				Action: func(cCtx *cli.Context) error {
-					n := network.NewNetwork(cCtx.String("network_name"), cCtx.String("network_owner"))
+					n := network.NewNetwork(cCtx.String("network_name"), cCtx.String("network_owner"), cCtx.String("network_callsign"))
 					s := server.NewServer(cCtx.String("port"), n)
-					list, err := player.FromFolder(cCtx.String("path"))
-					if err != nil {
-						return err
+					
+					strategy := player.MediaListSortStrategy(player.SortStratRandom{})
+					if cCtx.Bool("episodic") {
+						strategy = player.SortStratAlphabetical{}
 					}
-					c := n.AddChannel(list)
-					err = n.SetChannelLive(c.ID)
-					if err != nil {
-						return err
+
+					paths := cCtx.StringSlice("path")
+					for _, p := range paths {
+						list, err := player.FromFolder(p, strategy)
+						if err != nil {
+							return fmt.Errorf("couldn't load media from %s: %w", p, err)
+						}
+						c := n.AddChannel(list)
+						// Initialize all channels to be "ready" in the background
+						if n.Live() == "" {
+							_ = n.SetChannelLive(c.ID)
+						}
 					}
+					
 					s.Serve()
 					return nil
 				},
@@ -51,10 +61,24 @@ func main() {
 						Usage: "the owner of your homelab cable network",
 					},
 					&cli.StringFlag{
+						Name:  "network_callsign",
+						Value: "KHLC",
+						Usage: "the call sign of your homelab cable network",
+					},
+					&cli.StringSliceFlag{
 						Name:     "path",
-						Value:    "",
-						Usage:    "path to media folder",
+						Usage:    "path to media folder (repeat for multiple channels)",
 						Required: true,
+					},
+					&cli.BoolFlag{
+						Name:  "episodic",
+						Usage: "play media in alphabetical order (A-Z)",
+						Value: false,
+					},
+					&cli.BoolFlag{
+						Name:  "random",
+						Usage: "play media in random order (default)",
+						Value: true,
 					},
 				},
 			},
@@ -80,57 +104,53 @@ func main() {
 				},
 				Subcommands: []*cli.Command{
 					{
-						Name:  "live",
-						Usage: "view information about the live channel",
+						Name:    "channels",
+						Aliases: []string{"list"},
+						Usage:   "list all active channels on the network",
 						Action: func(cCtx *cli.Context) error {
 							c, err := connect(cCtx)
 							if err != nil {
 								return err
 							}
-							channel, err := c.CurrentChannel()
+							channels, err := c.Channels()
 							if err != nil {
 								return err
 							}
 
 							if c.JSONOut {
-								chanBytes, err := json.Marshal(channel)
+								chanBytes, err := json.MarshalIndent(channels, "", "  ")
 								if err != nil {
 									return err
 								}
-								fmt.Printf("%s", chanBytes)
+								fmt.Println(string(chanBytes))
 								return nil
 							}
 
-							fmt.Printf("%s", channel)
-
+							for _, channel := range channels {
+								fmt.Println(channel)
+							}
 							return nil
 						},
 					},
 					{
-						Name:  "play_next",
-						Usage: "play the next piece of media for the live channel",
+						Name:  "tune",
+						Usage: "switch the host-tuned live channel to the specified channel ID",
+						ArgsUsage: "<channel_id>",
 						Action: func(cCtx *cli.Context) error {
+							id := cCtx.Args().First()
+							if id == "" {
+								return fmt.Errorf("must specify a channel ID")
+							}
 							c, err := connect(cCtx)
 							if err != nil {
 								return err
 							}
-							channel, err := c.LiveNext()
+							channel, err := c.Tune(id)
 							if err != nil {
 								return err
 							}
 
-							if c.JSONOut {
-								chanBytes, err := json.Marshal(channel)
-								if err != nil {
-									return err
-								}
-								fmt.Printf("%s", chanBytes)
-								return nil
-							}
-
-							fmt.Printf("%s", channel)
-
-							return nil
+							return printChannel(c, channel)
 						},
 					},
 				},
@@ -140,7 +160,11 @@ func main() {
 				Usage: "list the media files a given --path would play",
 				Action: func(cCtx *cli.Context) error {
 					path := cCtx.String("path")
-					list, err := player.FromFolder(path)
+					strategy := player.MediaListSortStrategy(player.SortStratRandom{})
+					if cCtx.Bool("episodic") {
+						strategy = player.SortStratAlphabetical{}
+					}
+					list, err := player.FromFolder(path, strategy)
 					if err != nil {
 						return err
 					}
@@ -154,12 +178,17 @@ func main() {
 						Usage:    "path to media folder",
 						Required: true,
 					},
+					&cli.BoolFlag{
+						Name:  "episodic",
+						Usage: "sort alphabetically",
+					},
 				},
 			},
 		},
 	}
 	if err := app.Run(os.Args); err != nil {
-		log.Fatal(err)
+		fmt.Fprintf(os.Stderr, "Error: %v\n", err)
+		os.Exit(1)
 	}
 }
 
@@ -167,11 +196,26 @@ func connect(ctx *cli.Context) (*client.Client, error) {
 	port := ctx.String("port")
 	host := ctx.String("host")
 	jsonOut := ctx.Bool("json")
+
 	c, err := client.Connect(host, port)
-	c.JSONOut = jsonOut
+	
 	if err != nil {
-		fmt.Printf("Couldn't connect to homelab-cable server - is one running at %s?\n", host+":"+port)
-		return nil, err
+		return nil, fmt.Errorf("couldn't connect to homelab-cable server at %s: %w", host+":"+port, err)
 	}
+	c.JSONOut = jsonOut
 	return c, nil
+}
+
+func printChannel(c *client.Client, channel domain.Channel) error {
+	if c.JSONOut {
+		chanBytes, err := json.MarshalIndent(channel, "", "  ")
+		if err != nil {
+			return err
+		}
+		fmt.Println(string(chanBytes))
+		return nil
+	}
+
+	fmt.Println(channel)
+	return nil
 }

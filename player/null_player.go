@@ -12,13 +12,16 @@ type NullPlayer struct {
 }
 
 func (n *NullPlayer) Init() error {
-	n.ticker = time.NewTicker(time.Minute * 30)
-	n.done = make(chan bool)
 	return nil
 }
 
 func (n *NullPlayer) Play(list *MediaList) error {
 	n.list = list
+	if n.ticker != nil {
+		return nil // Already running
+	}
+	n.ticker = time.NewTicker(time.Minute * 30)
+	n.done = make(chan bool)
 	go func() {
 		for {
 			select {
@@ -29,6 +32,11 @@ func (n *NullPlayer) Play(list *MediaList) error {
 			}
 		}
 	}()
+	return nil
+}
+
+func (n *NullPlayer) PlayURL(url string) error {
+	// NullPlayer doesn't actually play anything
 	return nil
 }
 

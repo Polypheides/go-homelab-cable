@@ -1,59 +1,89 @@
 package network
 
 import (
-	"context"
 	"errors"
+	"sync"
 
-	"github.com/clabland/go-homelab-cable/player"
+	"github.com/Polypheides/go-homelab-cable/player"
 )
 
 var ErrNetworkNoChannelPlaying = errors.New("network no channel playing")
 var ErrNetworkChannelNotFound = errors.New("network channel not found")
 
-var DefaultChannelName = "default"
 
 type Network struct {
-	Ctx   context.Context
-	Name  string
-	Owner string
+	Name     string
+	Owner    string
+	CallSign string
 
-	channels     map[string]*Channel
-	tunedChannel string // The channel which is currently displaying video on the host
+	mu             sync.RWMutex
+	channels       map[string]*Channel
+	tunedChannel   string // The channel which is currently displaying video on the host
+	nextPort       int    // The next available port for a broadcaster
+	master         *player.MasterBroadcaster // Port 4999 relay
 }
 
-func NewNetwork(name string, owner string) *Network {
+func NewNetwork(name string, owner string, callSign string) *Network {
 	if name == "" {
 		name = "Homelab Cable"
 	}
 	if owner == "" {
 		owner = "clabretro"
 	}
+	if callSign == "" {
+		callSign = "KHLC"
+	}
 
 	return &Network{
 		Name:     name,
 		Owner:    owner,
-		channels: make(map[string]*Channel, 0),
+		CallSign: callSign,
+		channels: make(map[string]*Channel),
+		nextPort: 5000, // Starts at 5000
+		master:   player.NewMasterBroadcaster(),
 	}
 }
 
 func (n *Network) AddChannel(list *player.MediaList) *Channel {
-	c := NewChannel(list)
-	if len(n.channels) == 0 {
-		c.ID = DefaultChannelName
-	}
+	n.mu.Lock()
+	defer n.mu.Unlock()
+
+	// Derive friendly channel number exactly from the port offset
+	// e.g. Port 5000 -> Channel 0, Port 5001 -> Channel 1
+	channelNum := n.nextPort - 5000
+	c := NewChannel(list, n.nextPort, channelNum)
+	n.nextPort++
+
 	n.channels[c.ID] = c
 	return c
 }
 
 func (n *Network) Channel(ID string) (*Channel, error) {
+	n.mu.RLock()
+	defer n.mu.RUnlock()
+
 	if c, ok := n.channels[ID]; ok {
 		return c, nil
-	} else {
-		return nil, ErrNetworkChannelNotFound
 	}
+	return nil, ErrNetworkChannelNotFound
+}
+
+func (n *Network) ChannelByNumber(number int) (*Channel, error) {
+	n.mu.RLock()
+	defer n.mu.RUnlock()
+
+	for _, c := range n.channels {
+		if c.Number == number {
+			return c, nil
+		}
+	}
+	return nil, ErrNetworkChannelNotFound
 }
 
 func (n *Network) Channels() []*Channel {
+	n.mu.RLock()
+	defer n.mu.RUnlock()
+
 	channels := make([]*Channel, 0, len(n.channels))
 	for _, c := range n.channels {
 		channels = append(channels, c)
@@ -62,10 +92,14 @@ func (n *Network) Channels() []*Channel {
 }
 
 func (n *Network) CurrentChannel() (*Channel, error) {
-	if len(n.channels) == 0 || n.tunedChannel == "" {
+	n.mu.RLock()
+	tuned := n.tunedChannel
+	n.mu.RUnlock()
+
+	if tuned == "" {
 		return nil, ErrNetworkNoChannelPlaying
 	}
-	return n.Channel(n.tunedChannel)
+	return n.Channel(tuned)
 }
 
 func (n *Network) SetChannelLive(ID string) error {
@@ -73,24 +107,58 @@ func (n *Network) SetChannelLive(ID string) error {
 	if err != nil {
 		return err
 	}
+
 	current, err := n.CurrentChannel()
 	if err != nil && !errors.Is(err, ErrNetworkNoChannelPlaying) {
 		return err
 	}
+
 	if current != nil {
-		err := current.PlayWith(&player.NullPlayer{})
-		if err != nil {
+		// When a channel is no longer live, it just continues broadcasting in the background
+		// We don't necessarily need to move it back to a NullPlayer anymore, 
+		// but we should ensure the player is cleared if needed.
+		if err := current.p.Shutdown(); err != nil {
 			return err
 		}
+		current.p = nil
 	}
-	err = c.PlayWith(&player.VLCPlayer{})
-	if err != nil {
+
+	// For the new live channel, we don't start a whole new playlist,
+	// we just "tune in" to its existing broadcast.
+	p := player.NewLivePlayer()
+	if err := p.Init(); err != nil {
 		return err
 	}
+
+	// Make sure the player knows about the list for metadata/skips
+	_ = p.Play(c.list)
+
+	if err := p.PlayURL(c.BroadcastURL()); err != nil {
+		return err
+	}
+
+	c.p = p
+
+	n.mu.Lock()
 	n.tunedChannel = c.ID
+	n.mu.Unlock()
+
+	// Tune the master relay (port 4999) to this channel's source.
+	// Non-fatal: don't abort the tune if the relay fails.
+	if err := n.master.Tune(c.BroadcastURL()); err != nil {
+		_ = err
+	}
+
 	return nil
 }
 
 func (n *Network) Live() string {
+	n.mu.RLock()
+	defer n.mu.RUnlock()
 	return n.tunedChannel
+}
+
+// MasterStreamURL returns the fixed URL of the master relay port (4999).
+func (n *Network) MasterStreamURL() string {
+	return player.MasterStreamURL()
 }

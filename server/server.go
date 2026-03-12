@@ -3,11 +3,9 @@ package server
 import (
 	"embed"
 	"fmt"
-	"math/rand"
 	"text/template"
-	"time"
 
-	"github.com/clabland/go-homelab-cable/network"
+	"github.com/Polypheides/go-homelab-cable/network"
 	"github.com/labstack/echo/v4"
 	"github.com/labstack/echo/v4/middleware"
 )
@@ -26,7 +24,6 @@ type Server struct {
 }
 
 func NewServer(port string, n *network.Network) *Server {
-	rand.Seed(time.Now().UnixNano())
 	return &Server{
 		port:    port,
 		Network: n,
@@ -36,7 +33,12 @@ func NewServer(port string, n *network.Network) *Server {
 func (s *Server) Serve() {
 	e := echo.New()
 
-	e.Use(middleware.Logger())
+	e.Use(middleware.LoggerWithConfig(middleware.LoggerConfig{
+		Skipper: func(c echo.Context) bool {
+			// Don't log the spammy status polls
+			return c.Path() == "/htmx/status"
+		},
+	}))
 	e.Use(middleware.Recover())
 	// need to use MustSubFS since the embedded fs by default includes the
 	// subfolder name (in this case "static")
@@ -60,8 +62,8 @@ func (s *Server) Serve() {
 	// Routes that always just act upon the current live channel
 	e.PUT("/api/networks/:callsign/live/next", s.playLiveNext)
 
-	e.GET("/htmx/meta", s.getHtmxMeta)
 	e.GET("/htmx/status", s.getHtmxStatus)
+	e.PUT("/htmx/channels/:channel_id/next", s.htmxPlayNext)
 	e.PUT("/htmx/live/next", s.htmxPlayLiveNext)
 
 	e.Logger.Fatal(e.Start(fmt.Sprintf(":%s", s.port)))

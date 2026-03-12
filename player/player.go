@@ -6,6 +6,7 @@ type Player interface {
 	Init() error
 
 	Play(list *MediaList) error
+	PlayURL(url string) error
 	PlayNext() error
 
 	Next() string

@@ -5,21 +5,89 @@
         <link href="https://fonts.cdnfonts.com/css/digital-7-mono" rel="stylesheet">
         <link rel="stylesheet" href="styles.css"/>
         <script src="https://unpkg.com/htmx.org@1.9.7"></script>
+        <script src="https://unpkg.com/idiomorph/dist/idiomorph-ext.min.js"></script>
     </head>
-    <body>
-        <section class="rack">
-            <article class="appliance">
-                <div class="logo" hx-get="/htmx/meta" hx-swap="innerHTML" hx-trigger="load">
-                </div>
-                <div id="status-holder">
-                    <div id="status-lcd" class="led led-off" hx-get="/htmx/status" hx-trigger="load" hx-swap="outerHTML">
-                        88888888888888
-                    </div>
-                </div>
-                <div id="play-next">
-                    <button hx-put="/htmx/live/next" hx-swap="none" class="metal linear small">></button>
-                </div>
-            </article>
+    <body hx-ext="morph">
+        <section class="rack" 
+                 hx-get="/htmx/status" 
+                 hx-trigger="load, every 10s, refreshStatus from:body" 
+                 hx-swap="morph" 
+                 hx-on::after-settle="checkOverflow()">
+            <!-- Dynamic Appliances will be injected here -->
         </section>
+
+        <script>
+            window.cableState = window.cableState || {};
+            window.cableAnims = window.cableAnims || {};
+            window.cableStartTimes = window.cableStartTimes || {};
+
+            function checkOverflow() {
+                document.querySelectorAll('.appliance').forEach(app => {
+                    const id = app.getAttribute('data-id');
+                    const playing = app.getAttribute('data-playing');
+                    const content = app.querySelector('.lcd-content');
+                    const lcd = document.getElementById('status-lcd-' + id);
+                    const text = content.querySelector('.lcd-text');
+                    
+                    if (!text) return;
+
+                    const threshold = 5; 
+                    const maxScroll = text.scrollWidth - lcd.clientWidth;
+                    const needsScroll = maxScroll > threshold;
+
+                    // 1. If song changed, stop previous animation and reset clock
+                    if (window.cableState[id] !== playing) {
+                        if (window.cableAnims[id]) {
+                            window.cableAnims[id].cancel();
+                            delete window.cableAnims[id];
+                        }
+                        window.cableState[id] = playing;
+                        window.cableStartTimes[id] = Date.now();
+                    }
+                    
+                    if (needsScroll) {
+                        content.classList.add('scrolling');
+                        
+                        // 2. IMPORTANT: If morphdom kept the element AND it's already animating, 
+                        // just leave it alone! This prevents the stutter.
+                        if (window.cableAnims[id] && window.cableAnims[id].playState === 'running') {
+                            return; 
+                        }
+
+                        const pixelsPerSecond = 30; 
+                        const pauseTime = 2000;      
+                        const scrollTime = (maxScroll / pixelsPerSecond) * 1000;
+                        const totalTime = pauseTime + (scrollTime * 2);
+
+                        const p1 = pauseTime / totalTime;
+                        const p2 = (pauseTime + scrollTime) / totalTime;
+
+                        const keyframes = [
+                            { transform: 'translateX(0)', offset: 0 },
+                            { transform: 'translateX(0)', offset: p1 },
+                            { transform: 'translateX(-' + (maxScroll + 15) + 'px)', offset: p2 },
+                            { transform: 'translateX(0)', offset: 1 }
+                        ];
+
+                        const anim = content.animate(keyframes, {
+                            duration: totalTime,
+                            iterations: Infinity,
+                            easing: 'linear'
+                        });
+
+                        const elapsed = (Date.now() - window.cableStartTimes[id]) % totalTime;
+                        anim.currentTime = elapsed;
+                        
+                        window.cableAnims[id] = anim;
+                    } else {
+                        content.classList.remove('scrolling');
+                        if (window.cableAnims[id]) {
+                            window.cableAnims[id].cancel();
+                            delete window.cableAnims[id];
+                        }
+                    }
+                });
+            }
+        </script>
     </body>
 </html>

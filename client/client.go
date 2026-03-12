@@ -3,10 +3,12 @@ package client
 import (
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"net/http"
+	"net/url"
+	"time"
 
-	"github.com/clabland/go-homelab-cable/domain"
+	"github.com/Polypheides/go-homelab-cable/domain"
 	"github.com/pkg/errors"
 )
 
@@ -20,31 +22,32 @@ type Client struct {
 func Connect(host, port string) (*Client, error) {
 	c := &Client{
 		Server: fmt.Sprintf("%s:%s/api/", host, port),
-		c:      &http.Client{},
+		c:      &http.Client{Timeout: 10 * time.Second},
 	}
 
-	resp, err := http.Get(c.Server + "networks")
+	resp, err := c.c.Get(c.Server + "networks")
 	if err != nil {
-		return c, err
+		return nil, err
 	}
+	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK {
-		return c, errors.Errorf("non-200: %v", resp.StatusCode)
+		return nil, errors.Errorf("non-200: %v", resp.StatusCode)
 	}
 
-	body, err := ioutil.ReadAll(resp.Body)
+	body, err := io.ReadAll(resp.Body)
 	if err != nil {
-		return c, err
+		return nil, err
 	}
 
 	var networks []domain.Network
 	err = json.Unmarshal(body, &networks)
 	if err != nil {
-		return c, err
+		return nil, err
 	}
 
 	if len(networks) == 0 {
-		return c, errors.New("no networks")
+		return nil, errors.New("no networks")
 	}
 
 	c.network = networks[0].CallSign
@@ -55,16 +58,75 @@ func Connect(host, port string) (*Client, error) {
 func (c *Client) CurrentChannel() (domain.Channel, error) {
 	var channel domain.Channel
 
-	resp, err := http.Get(c.Server + "networks/" + c.network + "/live")
+	resp, err := c.c.Get(c.Server + "networks/" + url.PathEscape(c.network) + "/live")
 	if err != nil {
 		return channel, err
 	}
+	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK {
 		return channel, errors.Errorf("non-200: %v", resp.StatusCode)
 	}
 
-	body, err := ioutil.ReadAll(resp.Body)
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return channel, err
+	}
+
+	err = json.Unmarshal(body, &channel)
+	if err != nil {
+		return channel, err
+	}
+
+	return channel, nil
+}
+
+func (c *Client) Channels() ([]domain.Channel, error) {
+	var channels []domain.Channel
+
+	resp, err := c.c.Get(c.Server + "networks/" + url.PathEscape(c.network) + "/channels")
+	if err != nil {
+		return channels, err
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		return channels, errors.Errorf("non-200: %v", resp.StatusCode)
+	}
+
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return channels, err
+	}
+
+	err = json.Unmarshal(body, &channels)
+	if err != nil {
+		return channels, err
+	}
+
+	return channels, nil
+}
+
+// Tune sets the specified channel as the live (tuned) channel on the host.
+func (c *Client) Tune(channelID string) (domain.Channel, error) {
+	var channel domain.Channel
+	req, err := http.NewRequest(http.MethodPut, fmt.Sprintf("%snetworks/%s/channels/%s/set_live", c.Server, url.PathEscape(c.network), url.PathEscape(channelID)), nil)
+	if err != nil {
+		return channel, err
+	}
+	req.Header.Set("Content-Type", "application/json")
+
+	resp, err := c.c.Do(req)
+	if err != nil {
+		return channel, err
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		return channel, errors.Errorf("non-200: %v", resp.StatusCode)
+	}
+
+	body, err := io.ReadAll(resp.Body)
 	if err != nil {
 		return channel, err
 	}
@@ -81,7 +143,7 @@ func (c *Client) CurrentChannel() (domain.Channel, error) {
 func (c *Client) LiveNext() (domain.Channel, error) {
 
 	var channel domain.Channel
-	req, err := http.NewRequest(http.MethodPut, fmt.Sprintf("%snetworks/%s/live/next", c.Server, c.network), nil)
+	req, err := http.NewRequest(http.MethodPut, fmt.Sprintf("%snetworks/%s/live/next", c.Server, url.PathEscape(c.network)), nil)
 	if err != nil {
 		return channel, err
 	}
@@ -91,12 +153,13 @@ func (c *Client) LiveNext() (domain.Channel, error) {
 	if err != nil {
 		return channel, err
 	}
+	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK {
 		return channel, errors.Errorf("non-200: %v", resp.StatusCode)
 	}
 
-	body, err := ioutil.ReadAll(resp.Body)
+	body, err := io.ReadAll(resp.Body)
 	if err != nil {
 		return channel, err
 	}

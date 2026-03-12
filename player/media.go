@@ -4,8 +4,9 @@ import (
 	"errors"
 	"math/rand"
 	"os"
-	"path"
+
 	"path/filepath"
+	"sort"
 	"sync"
 )
 
@@ -17,6 +18,12 @@ type SortStratRandom struct{}
 
 func (s SortStratRandom) Sort(list []string) {
 	rand.Shuffle(len(list), func(i, j int) { list[i], list[j] = list[j], list[i] })
+}
+
+type SortStratAlphabetical struct{}
+
+func (s SortStratAlphabetical) Sort(list []string) {
+	sort.Strings(list)
 }
 
 type MediaList struct {
@@ -35,6 +42,7 @@ func NewMediaList(list []string, sortStrat MediaListSortStrategy) (*MediaList, e
 	ml := &MediaList{
 		list:         list,
 		SortStrategy: sortStrat,
+		nextList:     make([]string, len(list)),
 	}
 	copy(ml.nextList, list)
 	ml.SortStrategy.Sort(ml.list)
@@ -55,7 +63,7 @@ func (ml *MediaList) Current() string {
 func (ml *MediaList) Next() string {
 	ml.mu.Lock()
 	defer ml.mu.Unlock()
-	if ml.current+1 > len(ml.list) {
+	if ml.current+1 >= len(ml.list) {
 		return ml.nextList[0]
 	}
 	return ml.list[ml.current+1]
@@ -64,7 +72,7 @@ func (ml *MediaList) Next() string {
 func (ml *MediaList) Advance() string {
 	ml.mu.Lock()
 	defer ml.mu.Unlock()
-	if ml.current+1 > len(ml.list) {
+	if ml.current+1 >= len(ml.list) {
 		ml.list, ml.nextList = ml.nextList, ml.list
 		ml.SortStrategy.Sort(ml.nextList)
 		ml.current = 0
@@ -80,7 +88,7 @@ var VideoFiles map[string]struct{} = map[string]struct{}{
 	".mkv": {},
 }
 
-func FromFolder(folderPath string) (*MediaList, error) {
+func FromFolder(folderPath string, sortStrat MediaListSortStrategy) (*MediaList, error) {
 	var paths []string
 	if err := filepath.Walk(folderPath, func(file string, info os.FileInfo, err error) error {
 		if err != nil {
@@ -89,12 +97,12 @@ func FromFolder(folderPath string) (*MediaList, error) {
 		if info.IsDir() {
 			return nil
 		}
-		if _, ok := VideoFiles[path.Ext(file)]; ok {
+		if _, ok := VideoFiles[filepath.Ext(file)]; ok {
 			paths = append(paths, file)
 		}
 		return nil
 	}); err != nil {
 		return nil, err
 	}
-	return NewMediaList(paths, SortStratRandom{})
+	return NewMediaList(paths, sortStrat)
 }

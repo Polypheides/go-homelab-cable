@@ -3,9 +3,10 @@ package server
 import (
 	"io"
 	"net/http"
+	"sort"
 	"text/template"
 
-	"github.com/clabland/go-homelab-cable/domain"
+	"github.com/Polypheides/go-homelab-cable/domain"
 	"github.com/labstack/echo/v4"
 )
 
@@ -22,19 +23,44 @@ type Meta struct {
 	Owner string
 }
 
-func (s *Server) getHtmxMeta(e echo.Context) error {
-	return e.Render(http.StatusOK, "meta.html", Meta{Name: s.Network.Name, Owner: s.Network.Owner})
+// getHtmxStatus returns the full status of all channels for the web dashboard
+func (s *Server) getHtmxStatus(e echo.Context) error {
+	channels := s.Network.Channels()
+	models := make([]domain.Channel, 0, len(channels))
+	for _, c := range channels {
+		models = append(models, domain.ToChannelModel(s.Network, c))
+	}
+
+	// Sort by StreamURL (Port) to keep the UI stable
+	sort.Slice(models, func(i, j int) bool {
+		return models[i].StreamURL < models[j].StreamURL
+	})
+	
+	data := struct {
+		Name     string
+		Owner    string
+		Channels []domain.Channel
+	}{
+		Name:     s.Network.Name,
+		Owner:    s.Network.Owner,
+		Channels: models,
+	}
+	
+	return e.Render(http.StatusOK, "status.html", data)
 }
 
-func (s *Server) getHtmxStatus(e echo.Context) error {
-	c, err := s.Network.CurrentChannel()
-	if err != nil {
-
-		return err
+func (s *Server) htmxPlayNext(e echo.Context) error {
+	c, err := s.Network.Channel(e.Param("channel_id"))
+	if err == nil {
+		_ = c.PlayNext()
 	}
-	return e.Render(http.StatusOK, "status.html", domain.ToChannelModel(s.Network, c))
+	return e.NoContent(http.StatusNoContent)
 }
 
 func (s *Server) htmxPlayLiveNext(e echo.Context) error {
-	return s.playLiveNext(e)
+	c, err := s.Network.CurrentChannel()
+	if err == nil {
+		_ = c.PlayNext()
+	}
+	return e.NoContent(http.StatusNoContent)
 }

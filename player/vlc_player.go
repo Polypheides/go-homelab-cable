@@ -1,3 +1,4 @@
+//go:build vlc
 package player
 
 import (
@@ -77,6 +78,23 @@ func (p *VLCPlayer) Play(list *MediaList) error {
 
 	var err error
 	p.currMedia, err = p.player.LoadMediaFromPath(p.list.Current())
+	if err != nil {
+		return err
+	}
+	return p.player.Play()
+}
+
+func (p *VLCPlayer) PlayURL(url string) error {
+	if p.player == nil {
+		return ErrPlayerNotInitialized
+	}
+
+	var err error
+	if p.currMedia != nil {
+		p.currMedia.Release()
+	}
+
+	p.currMedia, err = p.player.LoadMediaFromURL(url)
 	if err != nil {
 		return err
 	}
