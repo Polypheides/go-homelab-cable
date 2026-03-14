@@ -12,7 +12,7 @@
                 "--protocol", "http",
                 "--stereo",
                 "--network_name", "PolyNet",
-                "--path", "T:\\Skilda Världar:1:e"
+                "--path", "T:\\Skilda VÃƒÂ¤rldar:1:e"
             ],
             "buildFlags": "-tags vlc"
         },
@@ -27,7 +27,7 @@
                 "--protocol", "http",
                 "--stereo",
                 "--network_name", "PolyNet",
-                "--path", "T:\\Skilda Världar:1:e"
+                "--path", "T:\\Skilda VÃƒÂ¤rldar:1:e"
             ],
             "buildFlags": ""
         }

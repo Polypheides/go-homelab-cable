@@ -54,7 +54,7 @@ func (c Channel) String() string {
 		s += fmt.Sprintf("\n  HTTP:    %s", c.HttpStreamURL)
 	}
 	if c.Tuned {
-		s += fmt.Sprintf("\n  Master:  %s  ← TUNED", c.MasterStreamURL)
+		s += fmt.Sprintf("\n  Master:  %s  Ã¢â€ Â TUNED", c.MasterStreamURL)
 		if c.HttpMasterStreamURL != "" {
 			s += fmt.Sprintf("\n  Master HTTP: %s", c.HttpMasterStreamURL)
 		}

@@ -5,20 +5,24 @@ import (
 	"fmt"
 	"os"
 
+	"strconv"
+	"strings"
+
 	"github.com/Polypheides/go-homelab-cable/client"
 	"github.com/Polypheides/go-homelab-cable/domain"
 	"github.com/Polypheides/go-homelab-cable/network"
 	"github.com/Polypheides/go-homelab-cable/player"
 	"github.com/Polypheides/go-homelab-cable/server"
 	cli "github.com/urfave/cli/v2"
-	"strconv"
-	"strings"
 )
 
-const banner = "   ____      ______      __    __   \n" +
-	"  / ___/___ / ___/___ _ / /_  / /__ \n" +
-	" / (_ // _ / /__ / _  / / __ \\/ / _ \\\n" +
-	" \\___/ \\___/\\___/\\_,_/ /_.___/_/\\___/ v1.1.0\n\n"
+const banner = `
+   ___        ___      _     _      
+  / _ \___   / __\__ _| |__ | | ___ 
+ / /_\/ _ \ / /  / _  | '_ \| |/ _ \
+/ /_\\ (_) / /__| (_| | |_) | |  __/
+\____/\___/\____/\__,_|_.__/|_|\___| v1.1.0
+`
 
 func main() {
 	app := &cli.App{

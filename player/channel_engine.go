@@ -136,7 +136,7 @@ func (b *Broadcaster) Start() error {
 
 	if b.audioMeta != nil && (b.audioMeta.Codec == "ac3" || b.audioMeta.Codec == "eac3") && !b.ForceStereo {
 		args = append(args, "-c:a", "copy")
-		// Silenced initial startup log for cleaner branded flow
+		fmt.Printf("[Broadcaster] Port %d: Using native passthrough for %s codec\n", b.port, b.audioMeta.Codec)
 	} else {
 		channels := "6"
 		bitrate := "640k"
@@ -146,7 +146,15 @@ func (b *Broadcaster) Start() error {
 		}
 		args = append(args, "-c:a", "ac3", "-ac", channels, "-b:a", bitrate)
 		args = append(args, "-af", "aresample=async=1:min_hard_comp=1.0")
-		// Silenced initial startup logs for cleaner branded flow
+		if b.audioMeta != nil {
+			if b.ForceStereo && b.audioMeta.Channels > 2 {
+				fmt.Printf("[Broadcaster] Port %d: Downmixing %s (%d ch) to Stereo AC3 (ForceStereo)\n", b.port, b.audioMeta.Codec, b.audioMeta.Channels)
+			} else {
+				fmt.Printf("[Broadcaster] Port %d: Transcoding %s (%d ch) to AC3 %s ch\n", b.port, b.audioMeta.Codec, b.audioMeta.Channels, channels)
+			}
+		} else {
+			fmt.Printf("[Broadcaster] Port %d: Metadata probe failed, defaulting to AC3 %s ch transcoding\n", b.port, channels)
+		}
 	}
 
 	args = append(args,
@@ -164,7 +172,7 @@ func (b *Broadcaster) Start() error {
 	}
 	go b.relayLoop(stdout)
 
-	// Silenced initial startup log for cleaner branded flow
+	fmt.Printf("[Broadcaster] Starting FFmpeg for port %d\n", b.port)
 	if err := b.cmd.Start(); err != nil {
 		return err
 	}
