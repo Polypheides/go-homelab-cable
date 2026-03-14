@@ -15,17 +15,15 @@ import (
 	"strings"
 )
 
-const banner = "  ____         ____      _     _      \n" +
-	" / ___| ___   / ___|__ _| |__ | | ___ \n" +
-	"| |  _ / _ \\ | |   / _` | '_ \\| |/ _ \\\n" +
-	"| |_| | (_) || |__| (_| | |_) | |  __/\n" +
-	" \\____|\\___/  \\____\\__,_|_.__/|_|\\___| v1.0.0\n"
+const banner = "   ____      ______      __    __   \n" +
+	"  / ___/___ / ___/___ _ / /_  / /__ \n" +
+	" / (_ // _ / /__ / _  / / __ \\/ / _ \\\n" +
+	" \\___/ \\___/\\___/\\_,_/ /_.___/_/\\___/ v1.1.0\n\n"
 
 func main() {
-	fmt.Print(banner)
 	app := &cli.App{
 		Name:    "GoCable",
-		Version: "v1.0.0",
+		Version: "v1.1.0",
 		Usage:   "A homelab cable network streaming server and client",
 		Commands: []*cli.Command{
 			{
@@ -67,6 +65,7 @@ func main() {
 						}
 					}
 
+					fmt.Print(banner)
 					s.Serve()
 					return nil
 				},

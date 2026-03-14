@@ -35,6 +35,7 @@ func NewServer(port string, n *network.Network) *Server {
 
 func (s *Server) Serve() {
 	e := echo.New()
+	e.HideBanner = true
 
 	e.Use(middleware.Recover())
 	// need to use MustSubFS since the embedded fs by default includes the
