@@ -276,9 +276,9 @@ func (b *Broadcaster) Start() error {
 
 	args := []string{
 		"-re",
-		"-fflags", "+genpts+igndts+discardcorrupt+nobuffer",
-		"-analyzeduration", "1000000",
-		"-probesize", "1000000",
+		"-fflags", "+genpts+igndts+discardcorrupt",
+		"-analyzeduration", "5000000",
+		"-probesize", "5000000",
 		"-avoid_negative_ts", "make_zero",
 		"-f", "concat",
 		"-safe", "0",
@@ -291,8 +291,6 @@ func (b *Broadcaster) Start() error {
 		"-af", "aresample=async=1:min_hard_comp=1",
 		"-f", "mpegts",
 		"-mpegts_flags", "resend_headers",
-		"-muxdelay", "0",
-		"-muxpreload", "0",
 		"-y", outputURL,
 	}
 
@@ -437,8 +435,8 @@ func (m *MasterBroadcaster) Tune(sourceURL string) error {
 		_ = m.Stop()
 	}
 
-	// Reduced wait for snappier switching
-	time.Sleep(100 * time.Millisecond)
+	// Slightly longer wait to ensure clean process switch
+	time.Sleep(200 * time.Millisecond)
 	m.sourceURL = sourceURL
 	return m.start()
 }
@@ -464,7 +462,7 @@ func (m *MasterBroadcaster) start() error {
 	}
 
 	args := []string{
-		"-fflags", "+genpts+discardcorrupt",
+		"-fflags", "+genpts+igndts+discardcorrupt",
 		"-analyzeduration", "5000000",
 		"-probesize", "5000000",
 		"-i", m.sourceURL,
