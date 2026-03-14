@@ -10,31 +10,27 @@ import (
 	"time"
 )
 
-// httpClientKey is a sentinel type used as a map key for HTTP streaming clients
-// in MasterBroadcaster, avoiding use of zero-value *net.TCPConn which can panic
-// on Close() on some platforms. (Fix #6)
 type httpClientKey struct{}
 
 type MasterBroadcaster struct {
 	cmd       *exec.Cmd
 	sourceURL string
-	Protocol  string // "udp", "tcp", or "http"
-
-	// TCP relay support
-	mu    sync.Mutex
-	conns map[any]chan []byte // key is net.Conn or httpClientKey
-	l     net.Listener
-
-	tuneMu sync.Mutex // Guard against rapid overlapping tune requests
+	Protocol  string
+	mu        sync.Mutex
+	conns     map[any]chan []byte
+	l         net.Listener
+	tuneMu    sync.Mutex
 }
 
+// NewMasterBroadcaster initializes a central relay engine for the active channel.
 func NewMasterBroadcaster() *MasterBroadcaster {
 	return &MasterBroadcaster{
-		Protocol: "udp", // default
+		Protocol: "udp",
 		conns:    make(map[any]chan []byte),
 	}
 }
 
+// Tune updates the master relay to point to a new source stream URL.
 func (m *MasterBroadcaster) Tune(sourceURL string) error {
 	m.tuneMu.Lock()
 	defer m.tuneMu.Unlock()
@@ -46,12 +42,13 @@ func (m *MasterBroadcaster) Tune(sourceURL string) error {
 	return m.start()
 }
 
+// start spawns the FFmpeg relay process for the master stream.
 func (m *MasterBroadcaster) start() error {
 	if m.sourceURL == "" {
 		return nil
 	}
 
-	outputURL := "-" // ALWAYS output to stdout pipe
+	outputURL := "-"
 
 	switch m.Protocol {
 	case "tcp", "http":
@@ -64,7 +61,6 @@ func (m *MasterBroadcaster) start() error {
 			go m.acceptLoop()
 		}
 	case "udp":
-		// No permanent UDP listener needed for relaying to a standard port
 	}
 
 	args := []string{
@@ -94,6 +90,7 @@ func (m *MasterBroadcaster) start() error {
 	return m.cmd.Start()
 }
 
+// acceptLoop waits for incoming relay client connections.
 func (m *MasterBroadcaster) acceptLoop() {
 	for {
 		conn, err := m.l.Accept()
@@ -110,6 +107,7 @@ func (m *MasterBroadcaster) acceptLoop() {
 	}
 }
 
+// connSender streams relay data to a single connected master client.
 func (m *MasterBroadcaster) connSender(conn net.Conn, ch chan []byte) {
 	defer func() {
 		conn.Close()
@@ -119,7 +117,6 @@ func (m *MasterBroadcaster) connSender(conn net.Conn, ch chan []byte) {
 	}()
 
 	for buf := range ch {
-		// FIX #9: 5-second deadline instead of 1 hour to release dead connections promptly.
 		conn.SetWriteDeadline(time.Now().Add(5 * time.Second))
 		_, err := conn.Write(buf)
 		if err != nil {
@@ -128,6 +125,7 @@ func (m *MasterBroadcaster) connSender(conn net.Conn, ch chan []byte) {
 	}
 }
 
+// relayLoop reads the FFmpeg relay output and distributes it to all master clients.
 func (m *MasterBroadcaster) relayLoop(r io.Reader) {
 	for {
 		buf := make([]byte, 188*10)
@@ -166,6 +164,7 @@ func (m *MasterBroadcaster) relayLoop(r io.Reader) {
 	}
 }
 
+// Stop terminates the master relay process and clears all client connections.
 func (m *MasterBroadcaster) Stop() error {
 	m.stopFFmpeg()
 	if m.l != nil {
@@ -184,6 +183,7 @@ func (m *MasterBroadcaster) Stop() error {
 	return nil
 }
 
+// stopFFmpeg terminates the active master relay FFmpeg process.
 func (m *MasterBroadcaster) stopFFmpeg() {
 	if m.cmd != nil && m.cmd.Process != nil {
 		_ = m.cmd.Process.Kill()
@@ -192,8 +192,7 @@ func (m *MasterBroadcaster) stopFFmpeg() {
 	}
 }
 
-// Stream registers an HTTP streaming client using a typed sentinel key (not a
-// zero-value *net.TCPConn) and pipes data to w until ctx is cancelled. (Fix #6)
+// Stream registers a writer as a master relay client and pipes data to it.
 func (m *MasterBroadcaster) Stream(ctx context.Context, w io.Writer) error {
 	ch := make(chan []byte, 1024)
 	key := httpClientKey{}
@@ -224,6 +223,7 @@ func (m *MasterBroadcaster) Stream(ctx context.Context, w io.Writer) error {
 	}
 }
 
+// MasterStreamURL returns the fixed streaming URL for the master relay.
 func MasterStreamURL(protocol string) string {
 	return formatListenURL(protocol, MasterPort)
 }

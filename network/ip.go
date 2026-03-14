@@ -6,8 +6,7 @@ import (
 	"strings"
 )
 
-// GetLocalIP returns the non-loopback local IPv4 address of the host,
-// filtered to RFC 1918 private ranges (192.168.x.x, 10.x.x.x, 172.16-31.x.x).
+// GetLocalIP identifies and returns the first available non-loopback private IPv4 address.
 func GetLocalIP() string {
 	addrs, err := net.InterfaceAddrs()
 	if err != nil {
@@ -26,9 +25,7 @@ func GetLocalIP() string {
 	return "127.0.0.1"
 }
 
-// isPrivateIP checks whether the given IPv4 address falls within RFC 1918 private ranges:
-//
-//	10.0.0.0/8, 172.16.0.0/12, 192.168.0.0/16
+// isPrivateIP determines if an IPv4 address falls within the RFC 1918 private ranges.
 func isPrivateIP(ipStr string) bool {
 	if strings.HasPrefix(ipStr, "192.168.") {
 		return true
@@ -36,7 +33,6 @@ func isPrivateIP(ipStr string) bool {
 	if strings.HasPrefix(ipStr, "10.") {
 		return true
 	}
-	// 172.16.0.0/12 covers 172.16.x.x – 172.31.x.x
 	if strings.HasPrefix(ipStr, "172.") {
 		parts := strings.SplitN(ipStr, ".", 3)
 		if len(parts) >= 2 {

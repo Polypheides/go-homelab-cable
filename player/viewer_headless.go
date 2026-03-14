@@ -6,26 +6,28 @@ import (
 	"time"
 )
 
-// NewLivePlayer returns a NullPlayer by default when VLC is not enabled.
+// NewLivePlayer returns a NullPlayer when VLC is not enabled on the system.
 func NewLivePlayer(master *MasterBroadcaster) Player {
 	return &NullPlayer{}
 }
 
-// NullPlayer advances the current item in the MediaList every 30 minutes. It (poorly) mimics the list of media being watched, as if it was on another channel.
+// NullPlayer provides a headless implementation that advances the playlist without media output.
 type NullPlayer struct {
 	list   *MediaList
 	ticker *time.Ticker
 	done   chan bool
 }
 
+// Init prepares the null player for background operation.
 func (n *NullPlayer) Init() error {
 	return nil
 }
 
+// Play starts the background simulation of media consumption.
 func (n *NullPlayer) Play(list *MediaList) error {
 	n.list = list
 	if n.ticker != nil {
-		return nil // Already running
+		return nil
 	}
 	n.ticker = time.NewTicker(time.Minute * 30)
 	n.done = make(chan bool)
@@ -42,13 +44,12 @@ func (n *NullPlayer) Play(list *MediaList) error {
 	return nil
 }
 
+// PlayURL is a no-op for the null player.
 func (n *NullPlayer) PlayURL(url string) error {
-	// NullPlayer doesn't actually play anything
 	return nil
 }
 
-// FIX #7: nil guard on list before calling any method on it.
-
+// PlayNext advances the underlying media list.
 func (n *NullPlayer) PlayNext() error {
 	if n.list != nil {
 		n.list.Advance()
@@ -56,6 +57,7 @@ func (n *NullPlayer) PlayNext() error {
 	return nil
 }
 
+// PlayPrevious rewinds the underlying media list.
 func (n *NullPlayer) PlayPrevious() error {
 	if n.list != nil {
 		n.list.Rewind()
@@ -63,6 +65,7 @@ func (n *NullPlayer) PlayPrevious() error {
 	return nil
 }
 
+// Next returns the file path of the next item in the media list.
 func (n *NullPlayer) Next() string {
 	if n.list != nil {
 		return n.list.Next()
@@ -70,6 +73,7 @@ func (n *NullPlayer) Next() string {
 	return ""
 }
 
+// Current returns the file path of the current item in the media list.
 func (n *NullPlayer) Current() string {
 	if n.list != nil {
 		return n.list.Current()
@@ -77,6 +81,7 @@ func (n *NullPlayer) Current() string {
 	return ""
 }
 
+// Shutdown terminates the null player's background activity.
 func (n *NullPlayer) Shutdown() error {
 	if n.ticker != nil {
 		n.ticker.Stop()

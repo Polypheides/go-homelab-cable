@@ -17,6 +17,7 @@ type TemplateRenderer struct {
 	templates *template.Template
 }
 
+// Render executes HTML templates for the web dashboard.
 func (t *TemplateRenderer) Render(w io.Writer, name string, data interface{}, c echo.Context) error {
 	return t.templates.ExecuteTemplate(w, name, data)
 }
@@ -26,7 +27,7 @@ type Meta struct {
 	Owner string
 }
 
-// getHtmxStatus returns the full status of all channels for the web dashboard
+// getHtmxStatus renders the main dashboard view with the current status of all channels.
 func (s *Server) getHtmxStatus(e echo.Context) error {
 	channels := s.Network.Channels()
 	models := make([]domain.Channel, 0, len(channels))
@@ -38,7 +39,6 @@ func (s *Server) getHtmxStatus(e echo.Context) error {
 		models = append(models, domain.ToChannelModel(s.Network, c, host))
 	}
 
-	// Sort by StreamURL (Port) to keep the UI stable
 	sort.Slice(models, func(i, j int) bool {
 		return models[i].StreamURL < models[j].StreamURL
 	})
@@ -56,6 +56,7 @@ func (s *Server) getHtmxStatus(e echo.Context) error {
 	return e.Render(http.StatusOK, "status.html", data)
 }
 
+// htmxPlayNext advances the specified channel via an HTMX request.
 func (s *Server) htmxPlayNext(e echo.Context) error {
 	c, err := s.Network.Channel(e.Param("channel_id"))
 	if err == nil {
@@ -66,6 +67,7 @@ func (s *Server) htmxPlayNext(e echo.Context) error {
 	return e.NoContent(http.StatusNoContent)
 }
 
+// htmxPlayLiveNext advances the live channel via an HTMX request.
 func (s *Server) htmxPlayLiveNext(e echo.Context) error {
 	c, err := s.Network.CurrentChannel()
 	if err == nil {
@@ -76,6 +78,7 @@ func (s *Server) htmxPlayLiveNext(e echo.Context) error {
 	return e.NoContent(http.StatusNoContent)
 }
 
+// htmxPlayPrevious rewinds the specified channel via an HTMX request.
 func (s *Server) htmxPlayPrevious(e echo.Context) error {
 	c, err := s.Network.Channel(e.Param("channel_id"))
 	if err == nil {
@@ -86,6 +89,7 @@ func (s *Server) htmxPlayPrevious(e echo.Context) error {
 	return e.NoContent(http.StatusNoContent)
 }
 
+// htmxTune sets a new channel as the live tuned channel via an HTMX request.
 func (s *Server) htmxTune(e echo.Context) error {
 	id := e.Param("channel_id")
 	_ = s.Network.SetChannelLive(id)

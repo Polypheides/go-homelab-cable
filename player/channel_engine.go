@@ -16,29 +16,19 @@ import (
 type Broadcaster struct {
 	list         *MediaList
 	port         int
-	Protocol     string // "udp", "tcp", or "http"
+	Protocol     string
 	cmd          *exec.Cmd
 	playlistFile string
 	OverlayText  string
-
-	// TCP relay support
-	mu    sync.Mutex
-	conns map[net.Conn]*streamClient
-	l     net.Listener
-	hub   *StreamHub
-
-	// relayDone is closed when the current relayLoop exits, used to prevent
-	// overlapping relay goroutines on rapid Advance/Rewind calls.
-	relayDone chan struct{}
-
-	// stopMu guards stopFFmpeg() against concurrent calls (e.g. Stop() racing with Advance()).
-	stopMu sync.Mutex
-
-	audioMeta   *AudioMetadata
-	ForceStereo bool
-
-	// UDP relay support
-	udpConn *net.UDPConn
+	mu           sync.Mutex
+	conns        map[net.Conn]*streamClient
+	l            net.Listener
+	hub          *StreamHub
+	relayDone    chan struct{}
+	stopMu       sync.Mutex
+	audioMeta    *AudioMetadata
+	ForceStereo  bool
+	udpConn      *net.UDPConn
 }
 
 type streamClient struct {
@@ -46,6 +36,7 @@ type streamClient struct {
 	pos  int64 // Position in the ring buffer
 }
 
+// NewBroadcaster creates a new broadcast engine for the specified media list and port.
 func NewBroadcaster(list *MediaList, port int) *Broadcaster {
 	return &Broadcaster{
 		list:     list,
@@ -56,16 +47,16 @@ func NewBroadcaster(list *MediaList, port int) *Broadcaster {
 	}
 }
 
+// Init sets up the temporary playlist file and prepares the broadcaster for starting.
 func (b *Broadcaster) Init() error {
 	tmpDir := os.TempDir()
 	b.playlistFile = filepath.Join(tmpDir, fmt.Sprintf("cable_playlist_%d.txt", b.port))
 	return b.updatePlaylist()
 }
 
+// updatePlaylist generates an FFmpeg-compatible concat playlist from the media list.
 func (b *Broadcaster) updatePlaylist() error {
 	var sb strings.Builder
-	// FIX #2: Snapshot() holds the MediaList lock for the entire read,
-	// preventing a TOCTOU race between All() and Current() calls.
 	all, currentFile := b.list.Snapshot()
 	currentIdx := 0
 
@@ -90,6 +81,7 @@ func (b *Broadcaster) updatePlaylist() error {
 	return os.WriteFile(b.playlistFile, []byte(sb.String()), 0644)
 }
 
+// Start spawns the FFmpeg process and begins relaying the stream to clients.
 func (b *Broadcaster) Start() error {
 	if b.playlistFile == "" {
 		if err := b.Init(); err != nil {
@@ -97,7 +89,7 @@ func (b *Broadcaster) Start() error {
 		}
 	}
 
-	outputURL := "-" // ALWAYS output to stdout pipe for universal relay
+	outputURL := "-"
 
 	switch b.Protocol {
 	case "tcp", "http":
@@ -137,29 +129,20 @@ func (b *Broadcaster) Start() error {
 		"-sn",
 	}
 
-	// Video Encoding & Overlay
 	if b.OverlayText != "" {
 		encoder, presetFlags := BestHEVCEncoder()
 		args = append(args, "-c:v", encoder)
 		args = append(args, presetFlags...)
 		args = append(args, "-crf", "23", "-tag:v", "hvc1")
 
-		// Add the Station Bug (Callsign) in the bottom-right corner.
-		// w-tw-40:h-th-40 puts it 40px from the bottom-right edges.
-		// fontcolor=white@0.4 makes it semi-transparent (60% transparent).
-		// We use a shadow to ensure it's readable on bright backgrounds.
 		drawText := fmt.Sprintf("drawtext=text='%s':fontcolor=white@0.4:fontsize=24:x=w-tw-40:y=h-th-40:shadowcolor=black@0.4:shadowx=2:shadowy=2", b.OverlayText)
 		args = append(args, "-vf", drawText)
 
 		fmt.Printf("[Broadcaster] Port %d: Enabling %s encoding with overlay bug: %s\n", b.port, encoder, b.OverlayText)
 	} else {
-		// Fallback to copy if no overlay is requested to save CPU
-		// But if the user wants "HEVC for everything", we'd change this to HEVC too.
-		// For now, keeping copy as the high-perf default if no bug is enabled.
 		args = append(args, "-c:v", "copy")
 	}
 
-	// Dynamic Audio Selection
 	if b.audioMeta == nil {
 		b.audioMeta, _ = ProbeMedia(b.list.Current())
 	}
@@ -206,7 +189,6 @@ func (b *Broadcaster) Start() error {
 		return err
 	}
 
-	// Track the relay goroutine so Stop/Advance/Rewind can wait for it to exit.
 	done := make(chan struct{})
 	b.relayDone = done
 	go func() {
@@ -214,9 +196,8 @@ func (b *Broadcaster) Start() error {
 		b.relayLoop(stdout)
 	}()
 
-	// Monitor FFmpeg exit in the background.
 	go func() {
-		<-done // Wait for relay to drain first, then reap the process.
+		<-done
 		if b.cmd != nil {
 			b.cmd.Wait() //nolint:errcheck
 		}
@@ -225,6 +206,7 @@ func (b *Broadcaster) Start() error {
 	return nil
 }
 
+// acceptLoop waits for new TCP connections and spawns a sender goroutine for each.
 func (b *Broadcaster) acceptLoop() {
 	for {
 		conn, err := b.l.Accept()
@@ -244,6 +226,7 @@ func (b *Broadcaster) acceptLoop() {
 	}
 }
 
+// connSender streams data from the hub to a single TCP client.
 func (b *Broadcaster) connSender(client *streamClient) {
 	defer func() {
 		client.conn.Close()
@@ -288,6 +271,7 @@ func (b *Broadcaster) connSender(client *streamClient) {
 	}
 }
 
+// relayLoop reads the FFmpeg stdout and writes it to the shared hub.
 func (b *Broadcaster) relayLoop(r io.Reader) {
 	const packetSize = 188
 	const chunkPackets = 50
@@ -297,14 +281,12 @@ func (b *Broadcaster) relayLoop(r io.Reader) {
 		buf := make([]byte, chunkSize)
 		_, err := io.ReadFull(r, buf)
 		if err != nil {
-			// io.ReadFull guarantees buf is full when err is nil, so buf[0] is safe above.
 			if err != io.EOF && err != io.ErrUnexpectedEOF {
 				fmt.Printf("[Broadcaster] Relay loop error on port %d: %v\n", b.port, err)
 			}
 			return
 		}
 
-		// MPEG-TS sync byte check. io.ReadFull guarantees buf is exactly chunkSize bytes here.
 		if buf[0] != 0x47 {
 			continue
 		}
@@ -317,9 +299,7 @@ func (b *Broadcaster) relayLoop(r io.Reader) {
 	}
 }
 
-// stopFFmpeg kills the current FFmpeg process and waits for the relay goroutine
-// to finish draining. Must NOT be called while holding b.mu.
-// FIX #1: stopMu prevents data races when Stop() and Advance()/Rewind() fire concurrently.
+// stopFFmpeg terminates the active FFmpeg process and waits for its relay to exit.
 func (b *Broadcaster) stopFFmpeg() {
 	b.stopMu.Lock()
 	defer b.stopMu.Unlock()
@@ -329,18 +309,14 @@ func (b *Broadcaster) stopFFmpeg() {
 		_ = b.cmd.Process.Kill()
 		b.cmd = nil
 	}
-	// Wait for the relay goroutine to exit so we don't have two relays running
-	// concurrently when Start() is called again immediately after.
 	if b.relayDone != nil {
 		<-b.relayDone
 		b.relayDone = nil
 	}
 }
 
+// Stop terminates all streaming processes and closes all client connections.
 func (b *Broadcaster) Stop() error {
-	// FIX #2: stopFFmpeg (which calls cmd.Wait via relay drain) must be called
-	// BEFORE acquiring b.mu, because connSender goroutines also acquire b.mu
-	// in their deferred cleanup. Holding mu during Wait would deadlock them.
 	b.stopFFmpeg()
 
 	b.mu.Lock()
@@ -362,7 +338,6 @@ func (b *Broadcaster) Stop() error {
 	}
 	b.conns = make(map[net.Conn]*streamClient)
 
-	// FIX #8: clean up temp playlist file on stop (covers partial Start() failures too).
 	if b.playlistFile != "" {
 		_ = os.Remove(b.playlistFile)
 		b.playlistFile = ""
@@ -370,28 +345,32 @@ func (b *Broadcaster) Stop() error {
 	return nil
 }
 
+// Advance skips to the next item in the media list and restarts the broadcast.
 func (b *Broadcaster) Advance() error {
 	b.list.Advance()
 	if err := b.updatePlaylist(); err != nil {
 		return err
 	}
-	b.stopFFmpeg() // safe: not holding mu
+	b.stopFFmpeg()
 	return b.Start()
 }
 
+// Rewind skips back to the previous item and restarts the broadcast.
 func (b *Broadcaster) Rewind() error {
 	b.list.Rewind()
 	if err := b.updatePlaylist(); err != nil {
 		return err
 	}
-	b.stopFFmpeg() // safe: not holding mu
+	b.stopFFmpeg()
 	return b.Start()
 }
 
+// StreamURL returns the formatted streaming URL for the broadcaster.
 func (b *Broadcaster) StreamURL() string {
 	return formatListenURL(b.Protocol, b.port)
 }
 
+// Hub returns the shared stream hub managed by this broadcaster.
 func (b *Broadcaster) Hub() *StreamHub {
 	return b.hub
 }
@@ -401,8 +380,7 @@ var (
 	detectedEncoder string
 )
 
-// BestHEVCEncoder probes the system for the best available HEVC hardware encoder.
-// It returns the encoder name and any required preset flags.
+// BestHEVCEncoder identifies the optimal hardware encoder available on the host system.
 func BestHEVCEncoder() (string, []string) {
 	hevcEncoderOnce.Do(func() {
 		out, err := exec.Command("ffmpeg", "-encoders").Output()
@@ -413,11 +391,11 @@ func BestHEVCEncoder() (string, []string) {
 
 		encoders := string(out)
 		priority := []string{
-			"hevc_nvenc", // NVIDIA
-			"hevc_qsv",   // Intel
-			"hevc_amf",   // AMD
-			"hevc_vaapi", // Linux / Universal
-			"hevc_mf",    // Windows Media Foundation
+			"hevc_nvenc",
+			"hevc_qsv",
+			"hevc_amf",
+			"hevc_vaapi",
+			"hevc_mf",
 		}
 
 		for _, enc := range priority {

@@ -10,21 +10,21 @@ import (
 	"sync"
 )
 
-// NewLivePlayer returns a VLCPlayer when the 'vlc' build tag is provided.
+// NewLivePlayer returns a new VLC-based player instance.
 func NewLivePlayer(master *MasterBroadcaster) Player {
 	return &VLCPlayer{master: master}
 }
 
 type VLCPlayer struct {
-	list   *MediaList
-	master *MasterBroadcaster
-
-	cmd     *exec.Cmd
-	done    chan struct{}
-	shutMu  sync.Mutex // FIX #2: guards done channel against double-close races
-	shutOnce sync.Once  // FIX #2: ensures done is closed exactly once
+	list     *MediaList
+	master   *MasterBroadcaster
+	cmd      *exec.Cmd
+	done     chan struct{}
+	shutMu   sync.Mutex
+	shutOnce sync.Once
 }
 
+// Init prepares the VLC player for media playback.
 func (p *VLCPlayer) Init() error {
 	p.shutMu.Lock()
 	defer p.shutMu.Unlock()
@@ -33,8 +33,8 @@ func (p *VLCPlayer) Init() error {
 	return nil
 }
 
+// Shutdown terminates the VLC process and releases all resources.
 func (p *VLCPlayer) Shutdown() error {
-	// FIX #2: use sync.Once to guarantee done is closed at most once.
 	p.shutOnce.Do(func() {
 		p.shutMu.Lock()
 		if p.done != nil {
@@ -51,11 +51,13 @@ func (p *VLCPlayer) Shutdown() error {
 	return nil
 }
 
+// Play starts media playback for the provided media list.
 func (p *VLCPlayer) Play(list *MediaList) error {
 	p.list = list
 	return p.PlayURL(p.list.Current())
 }
 
+// findVLCBinary searches the system for the VLC executable path.
 func findVLCBinary() string {
 	if path, err := exec.LookPath("vlc"); err == nil {
 		return path
@@ -68,7 +70,7 @@ func findVLCBinary() string {
 			`C:\Program Files\VideoLAN\VLC\vlc.exe`,
 			`C:\Program Files (x86)\VideoLAN\VLC\vlc.exe`,
 		}
-	} else { // Linux
+	} else {
 		fallbackPaths = []string{
 			"/usr/bin/vlc",
 			"/snap/bin/vlc",
@@ -84,6 +86,7 @@ func findVLCBinary() string {
 	return ""
 }
 
+// PlayURL launches a VLC process to play the specified master stream URL.
 func (p *VLCPlayer) PlayURL(url string) error {
 	if p.cmd != nil && p.cmd.Process != nil {
 		_ = p.cmd.Process.Kill()
@@ -93,11 +96,9 @@ func (p *VLCPlayer) PlayURL(url string) error {
 
 	bin := findVLCBinary()
 
-	// Dynamically override the URL to track the MasterBroadcaster
 	masterURL := MasterStreamURL(p.master.Protocol)
 
 	if bin == "" {
-		// Headless fallback
 		fmt.Printf("[Player] VLC executable not found on host system. Operating in headless mode tracking stream: %s\n", masterURL)
 		return nil
 	}
@@ -120,8 +121,7 @@ func (p *VLCPlayer) PlayURL(url string) error {
 	return nil
 }
 
-// FIX #1: nil guards on p.list in all methods that access it.
-
+// PlayNext advances media and restarts VLC with the new master stream.
 func (p *VLCPlayer) PlayNext() error {
 	if p.list == nil {
 		return nil
@@ -129,6 +129,7 @@ func (p *VLCPlayer) PlayNext() error {
 	return p.PlayURL(p.list.Advance())
 }
 
+// PlayPrevious rewinds media and restarts VLC with the new master stream.
 func (p *VLCPlayer) PlayPrevious() error {
 	if p.list == nil {
 		return nil
@@ -136,6 +137,7 @@ func (p *VLCPlayer) PlayPrevious() error {
 	return p.PlayURL(p.list.Rewind())
 }
 
+// Next returns the file path of the next item in the media list.
 func (p *VLCPlayer) Next() string {
 	if p.list == nil {
 		return ""
@@ -143,6 +145,7 @@ func (p *VLCPlayer) Next() string {
 	return p.list.Next()
 }
 
+// Current returns the file path of the current item in the media list.
 func (p *VLCPlayer) Current() string {
 	if p.list == nil {
 		return ""

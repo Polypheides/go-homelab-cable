@@ -17,8 +17,8 @@ type Channel struct {
 	HttpStreamURL       string `json:"http_stream_url,omitempty"`
 	MasterStreamURL     string `json:"master_stream_url,omitempty"`
 	HttpMasterStreamURL string `json:"http_master_stream_url,omitempty"`
-	Tuned               bool   `json:"tuned"`        // Is this channel showing on the host VLC window?
-	Broadcasting        bool   `json:"broadcasting"` // Is the FFmpeg stream active?
+	Tuned               bool   `json:"tuned"`
+	Broadcasting        bool   `json:"broadcasting"`
 	OverlayText         string `json:"overlay_text,omitempty"`
 }
 
@@ -30,6 +30,7 @@ type Network struct {
 	HttpMasterStreamURL string `json:"http_master_stream_url,omitempty"`
 }
 
+// ToChannelModel converts a network channel instance to its domain model representation.
 func ToChannelModel(n *network.Network, c *network.Channel, host string) Channel {
 	if host == "" || host == "localhost" || host == "127.0.0.1" || strings.HasPrefix(host, "127.0.0.1:") || strings.HasPrefix(host, "localhost:") {
 		host = network.GetLocalIP() + ":" + n.WebServerPort
@@ -44,11 +45,12 @@ func ToChannelModel(n *network.Network, c *network.Channel, host string) Channel
 		MasterStreamURL:     n.MasterStreamURL(),
 		HttpMasterStreamURL: fmt.Sprintf("http://%s/master", host),
 		Tuned:               n.Live() == c.ID,
-		Broadcasting:        true, // In this architecture, added channels are always broadcasting
+		Broadcasting:        true,
 		OverlayText:         c.OverlayText(),
 	}
 }
 
+// String returns a formatted multiline string describing the channel state.
 func (c Channel) String() string {
 	s := fmt.Sprintf("[CH %d] (%s)\n  Playing: %s\n  Up Next: %s\n  Stream:  %s",
 		c.Number, c.ID, c.Playing, c.UpNext, c.StreamURL)

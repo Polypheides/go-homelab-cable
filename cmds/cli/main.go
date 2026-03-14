@@ -24,6 +24,7 @@ const banner = `
 \____/\___/\____/\__,_|_.__/|_|\___| v1.1.0
 `
 
+// main initializes and executes the GoCable CLI application.
 func main() {
 	app := &cli.App{
 		Name:    "GoCable",
@@ -42,15 +43,13 @@ func main() {
 						cCtx.Bool("stereo"),
 					)
 					n.NoBug = cCtx.Bool("no_bug")
-					n.WebServerPort = cCtx.String("port") // Ensure Network knows its external web port
+					n.WebServerPort = cCtx.String("port")
 					s := server.NewServer(cCtx.String("port"), n)
 
-					// Handle unified paths: path[:season][:mode]
 					paths := cCtx.StringSlice("path")
 					for _, raw := range paths {
 						cfg := parseChannelConfig(raw)
 
-						// Determine strategy
 						strategy := player.MediaListSortStrategy(player.SortStratRandom{})
 						if cfg.mode == "e" || (cfg.mode == "" && cCtx.Bool("episodic")) {
 							strategy = player.SortStratAlphabetical{}
@@ -236,6 +235,7 @@ func main() {
 	}
 }
 
+// connect initializes a client connection based on CLI flags.
 func connect(ctx *cli.Context) (*client.Client, error) {
 	port := ctx.String("port")
 	host := ctx.String("host")
@@ -250,6 +250,7 @@ func connect(ctx *cli.Context) (*client.Client, error) {
 	return c, nil
 }
 
+// printChannel outputs channel metadata in plain text or JSON format.
 func printChannel(c *client.Client, channel domain.Channel) error {
 	if c.JSONOut {
 		chanBytes, err := json.MarshalIndent(channel, "", "  ")
@@ -270,6 +271,7 @@ type channelConfig struct {
 	mode   string
 }
 
+// parseChannelConfig parses the path[:season][:mode] string format.
 func parseChannelConfig(raw string) channelConfig {
 	parts := strings.Split(raw, ":")
 	if len(parts) == 0 {
@@ -279,7 +281,6 @@ func parseChannelConfig(raw string) channelConfig {
 	cfg := channelConfig{}
 	pathEndIdx := 1
 
-	// Handle Windows drive (e.g. "C:\")
 	if len(parts[0]) == 1 && len(parts) > 1 {
 		cfg.path = parts[0] + ":" + parts[1]
 		pathEndIdx = 2
@@ -287,7 +288,6 @@ func parseChannelConfig(raw string) channelConfig {
 		cfg.path = parts[0]
 	}
 
-	// Process remaining parts
 	for i := pathEndIdx; i < len(parts); i++ {
 		p := strings.ToLower(parts[i])
 		if p == "e" || p == "r" {

@@ -15,15 +15,16 @@ type StreamHub struct {
 	cond   *sync.Cond
 }
 
+// NewStreamHub initializes a new ring buffer hub for managing streaming data packets.
 func NewStreamHub(size int) *StreamHub {
-	h := &StreamHub{
+	return &StreamHub{
 		buffer: make([][]byte, size),
 		size:   size,
 		cond:   sync.NewCond(&sync.Mutex{}),
 	}
-	return h
 }
 
+// Write adds a new data chunk to the ring buffer and notifies waiting readers.
 func (h *StreamHub) Write(chunk []byte) {
 	h.cond.L.Lock()
 	if h.closed {
@@ -31,7 +32,6 @@ func (h *StreamHub) Write(chunk []byte) {
 		return
 	}
 	idx := h.head % int64(h.size)
-	// We must copy because the source buffer is reused
 	if cap(h.buffer[idx]) >= len(chunk) {
 		h.buffer[idx] = h.buffer[idx][:len(chunk)]
 	} else {
@@ -43,19 +43,19 @@ func (h *StreamHub) Write(chunk []byte) {
 	h.cond.Broadcast()
 }
 
+// Close marks the hub as closed and notifies all blocked readers to exit.
 func (h *StreamHub) Close() {
 	h.cond.L.Lock()
 	h.closed = true
 	h.cond.L.Unlock()
-	h.cond.Broadcast() // Wake up all waiting readers
+	h.cond.Broadcast()
 }
 
+// Get retrieves a data chunk at the specified position, blocking until it becomes available.
 func (h *StreamHub) Get(pos int64) ([]byte, int64, bool) {
 	h.cond.L.Lock()
 	defer h.cond.L.Unlock()
 
-	// If we are way behind (paused) or just starting (pos < 0),
-	// teleport to the last finished chunk so we have data ready instantly.
 	if pos < 0 || h.head-pos > int64(h.size) {
 		pos = h.head - 1
 		if pos < 0 {
@@ -63,7 +63,6 @@ func (h *StreamHub) Get(pos int64) ([]byte, int64, bool) {
 		}
 	}
 
-	// Wait for data if we are at the head
 	for h.head <= pos && !h.closed {
 		h.cond.Wait()
 	}
@@ -75,18 +74,13 @@ func (h *StreamHub) Get(pos int64) ([]byte, int64, bool) {
 	idx := pos % int64(h.size)
 	chunk := h.buffer[idx]
 	if chunk == nil {
-		// Safety check if buffer hasn't reached this point yet
 		return nil, pos, false
 	}
 	return chunk, pos + 1, true
 }
 
-// Stream pipes data from the hub to the writer until the context is canceled or the hub is closed.
-// FIX #1: a watcher goroutine broadcasts on ctx cancellation so that Get() unblocks immediately
-// when the HTTP client disconnects, preventing indefinite goroutine leaks.
+// Stream pipes data from the hub to a writer until the context is canceled.
 func (h *StreamHub) Stream(ctx context.Context, w io.Writer) error {
-	// Ensure the cond is broadcast when ctx is done so any in-progress
-	// cond.Wait() inside Get() wakes up and can detect the cancellation.
 	go func() {
 		<-ctx.Done()
 		h.cond.Broadcast()
@@ -113,6 +107,7 @@ func (h *StreamHub) Stream(ctx context.Context, w io.Writer) error {
 	}
 }
 
+// LiveIndex returns the current monotonic head position of the ring buffer.
 func (h *StreamHub) LiveIndex() int64 {
 	h.cond.L.Lock()
 	defer h.cond.L.Unlock()

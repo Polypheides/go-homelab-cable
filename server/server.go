@@ -13,7 +13,6 @@ import (
 	"time"
 )
 
-// embedded files
 var (
 	//go:embed static/*
 	staticFS embed.FS
@@ -26,6 +25,7 @@ type Server struct {
 	Network *network.Network
 }
 
+// NewServer initializes a new web server instance for the given network.
 func NewServer(port string, n *network.Network) *Server {
 	return &Server{
 		port:    port,
@@ -33,15 +33,13 @@ func NewServer(port string, n *network.Network) *Server {
 	}
 }
 
+// Serve starts the web server and defines all API, HTMX, and streaming routes.
 func (s *Server) Serve() {
 	e := echo.New()
 	e.HideBanner = true
 
 	e.Use(middleware.Recover())
-	// need to use MustSubFS since the embedded fs by default includes the
-	// subfolder name (in this case "static")
-	// if the subfolder name changes, both the //go:embed directive
-	// and this will need to be updated
+
 	e.StaticFS("/", echo.MustSubFS(staticFS, "static"))
 
 	renderer := &TemplateRenderer{
@@ -57,7 +55,6 @@ func (s *Server) Serve() {
 	e.PUT("/api/networks/:callsign/channels/:channel_id/play_next", s.playNext)
 	e.GET("/api/networks/:callsign/live", s.liveChannel)
 
-	// Routes that always just act upon the current live channel
 	e.PUT("/api/networks/:callsign/live/next", s.playLiveNext)
 
 	e.GET("/htmx/status", s.getHtmxStatus)
@@ -66,13 +63,13 @@ func (s *Server) Serve() {
 	e.PUT("/htmx/channels/:channel_id/tune", s.htmxTune)
 	e.PUT("/htmx/live/next", s.htmxPlayLiveNext)
 
-	// HTTP Streaming Routes
 	e.GET("/master", s.streamMaster)
 	e.GET("/:channel_num/", s.streamChannel)
 
 	e.Logger.Fatal(e.Start(fmt.Sprintf(":%s", s.port)))
 }
 
+// streamMaster handles the HTTP streaming request for the master relay.
 func (s *Server) streamMaster(c echo.Context) error {
 	c.Response().Header().Set(echo.HeaderContentType, "video/mp2t")
 	c.Response().WriteHeader(200)
@@ -84,6 +81,7 @@ func (s *Server) streamMaster(c echo.Context) error {
 	return nil
 }
 
+// streamChannel handles the HTTP streaming request for a specific channel.
 func (s *Server) streamChannel(c echo.Context) error {
 	numStr := c.Param("channel_num")
 	num, err := strconv.Atoi(numStr)
@@ -106,6 +104,7 @@ func (s *Server) streamChannel(c echo.Context) error {
 	return nil
 }
 
+// logAction prints a formatted access log message to the console.
 func (s *Server) logAction(method, uri string, c *network.Channel) {
 	contextPart := ""
 	if c.Season() > 0 {

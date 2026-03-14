@@ -17,12 +17,14 @@ type MediaListSortStrategy interface {
 
 type SortStratRandom struct{}
 
+// Sort shuffles the provided file list randomly.
 func (s SortStratRandom) Sort(list []string) {
 	rand.Shuffle(len(list), func(i, j int) { list[i], list[j] = list[j], list[i] })
 }
 
 type SortStratAlphabetical struct{}
 
+// Sort organizes the provided file list in alphabetical order.
 func (s SortStratAlphabetical) Sort(list []string) {
 	sort.Strings(list)
 }
@@ -38,6 +40,7 @@ type MediaList struct {
 	mu sync.Mutex
 }
 
+// NewMediaList initializes a new media list with the given files and sorting strategy.
 func NewMediaList(list []string, sortStrat MediaListSortStrategy) (*MediaList, error) {
 	if len(list) == 0 {
 		return nil, errors.New("need media")
@@ -53,8 +56,7 @@ func NewMediaList(list []string, sortStrat MediaListSortStrategy) (*MediaList, e
 	return ml, nil
 }
 
-// All returns a snapshot copy of the current playlist.
-// This avoids exposing the internal slice to callers who might mutate it.
+// All returns a shallow copy of all media file paths in the list.
 func (ml *MediaList) All() []string {
 	ml.mu.Lock()
 	defer ml.mu.Unlock()
@@ -63,8 +65,7 @@ func (ml *MediaList) All() []string {
 	return out
 }
 
-// Snapshot returns a copy of the full playlist and the current file atomically
-// under a single lock acquisition, preventing TOCTOU races between All() and Current().
+// Snapshot returns a copy of the playlist and the currently active file atomically.
 func (ml *MediaList) Snapshot() ([]string, string) {
 	ml.mu.Lock()
 	defer ml.mu.Unlock()
@@ -73,12 +74,14 @@ func (ml *MediaList) Snapshot() ([]string, string) {
 	return out, ml.list[ml.current]
 }
 
+// Current returns the file path of the media item currently selected.
 func (ml *MediaList) Current() string {
 	ml.mu.Lock()
 	defer ml.mu.Unlock()
 	return ml.list[ml.current]
 }
 
+// Next returns the file path of the media item that follows the current one.
 func (ml *MediaList) Next() string {
 	ml.mu.Lock()
 	defer ml.mu.Unlock()
@@ -88,6 +91,7 @@ func (ml *MediaList) Next() string {
 	return ml.list[ml.current+1]
 }
 
+// Advance moves the selection to the next item, cycling back to the start if necessary.
 func (ml *MediaList) Advance() string {
 	ml.mu.Lock()
 	defer ml.mu.Unlock()
@@ -101,6 +105,7 @@ func (ml *MediaList) Advance() string {
 	return ml.list[ml.current]
 }
 
+// Rewind moves the selection to the previous item, cycling back to the end if necessary.
 func (ml *MediaList) Rewind() string {
 	ml.mu.Lock()
 	defer ml.mu.Unlock()
@@ -118,10 +123,12 @@ var VideoFiles map[string]struct{} = map[string]struct{}{
 	".mkv": {},
 }
 
+// FromFolder scans a directory for video files and initializes a media list.
 func FromFolder(folderPath string, sortStrat MediaListSortStrategy) (*MediaList, error) {
 	return FromFolderWithSeason(folderPath, sortStrat, 0)
 }
 
+// FromFolderWithSeason scans a directory for videos belonging to a specific season.
 func FromFolderWithSeason(folderPath string, sortStrat MediaListSortStrategy, targetSeason int) (*MediaList, error) {
 	var paths []string
 	if err := filepath.Walk(folderPath, func(file string, info os.FileInfo, err error) error {
@@ -154,6 +161,7 @@ func FromFolderWithSeason(folderPath string, sortStrat MediaListSortStrategy, ta
 	return ml, nil
 }
 
+// matchesSeason use regex to determine if a file path corresponds to a given season number.
 func matchesSeason(path string, target int) bool {
 	pattern := fmt.Sprintf(`(?i)(season\s*|s|s\.)0*%d(?:[^0-9]|$)`, target)
 	matched, _ := regexp.MatchString(pattern, path)

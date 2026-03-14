@@ -15,6 +15,7 @@ type ffprobeOutput struct {
 	Streams []AudioMetadata `json:"streams"`
 }
 
+// ProbeMedia uses ffprobe to identify the audio codec and channel count of a file.
 func ProbeMedia(path string) (*AudioMetadata, error) {
 	args := []string{
 		"-v", "error",
