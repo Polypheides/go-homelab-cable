@@ -8,6 +8,8 @@ import (
 	"github.com/Polypheides/go-homelab-cable/network"
 	"github.com/labstack/echo/v4"
 	"github.com/labstack/echo/v4/middleware"
+	"path/filepath"
+	"time"
 )
 
 // embedded files
@@ -33,12 +35,6 @@ func NewServer(port string, n *network.Network) *Server {
 func (s *Server) Serve() {
 	e := echo.New()
 
-	e.Use(middleware.LoggerWithConfig(middleware.LoggerConfig{
-		Skipper: func(c echo.Context) bool {
-			// Don't log the spammy status polls
-			return c.Path() == "/htmx/status"
-		},
-	}))
 	e.Use(middleware.Recover())
 	// need to use MustSubFS since the embedded fs by default includes the
 	// subfolder name (in this case "static")
@@ -64,7 +60,26 @@ func (s *Server) Serve() {
 
 	e.GET("/htmx/status", s.getHtmxStatus)
 	e.PUT("/htmx/channels/:channel_id/next", s.htmxPlayNext)
+	e.PUT("/htmx/channels/:channel_id/previous", s.htmxPlayPrevious)
+	e.PUT("/htmx/channels/:channel_id/tune", s.htmxTune)
 	e.PUT("/htmx/live/next", s.htmxPlayLiveNext)
 
 	e.Logger.Fatal(e.Start(fmt.Sprintf(":%s", s.port)))
+}
+
+func (s *Server) logAction(method, uri string, c *network.Channel) {
+	contextPart := ""
+	if c.Season() > 0 {
+		contextPart = fmt.Sprintf(" | S%d:%s", c.Season(), c.SortMode())
+	} else {
+		contextPart = fmt.Sprintf(" | %s", c.SortMode())
+	}
+
+	fmt.Printf("[%s] 200 | %s %s | CH %d%s | %s\n",
+		time.Now().Format("15:04:05"),
+		method, uri,
+		c.Number,
+		contextPart,
+		filepath.Base(c.Current()),
+	)
 }

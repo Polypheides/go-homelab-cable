@@ -53,6 +53,7 @@ func (s *Server) htmxPlayNext(e echo.Context) error {
 	c, err := s.Network.Channel(e.Param("channel_id"))
 	if err == nil {
 		_ = c.PlayNext()
+		s.logAction("PUT", e.Request().URL.Path, c)
 	}
 	return e.NoContent(http.StatusNoContent)
 }
@@ -61,6 +62,27 @@ func (s *Server) htmxPlayLiveNext(e echo.Context) error {
 	c, err := s.Network.CurrentChannel()
 	if err == nil {
 		_ = c.PlayNext()
+		s.logAction("PUT", e.Request().URL.Path, c)
+	}
+	return e.NoContent(http.StatusNoContent)
+}
+
+func (s *Server) htmxPlayPrevious(e echo.Context) error {
+	c, err := s.Network.Channel(e.Param("channel_id"))
+	if err == nil {
+		_ = c.PlayPrevious()
+		s.logAction("PUT", e.Request().URL.Path, c)
+	}
+	return e.NoContent(http.StatusNoContent)
+}
+
+func (s *Server) htmxTune(e echo.Context) error {
+	id := e.Param("channel_id")
+	_ = s.Network.SetChannelLive(id)
+	
+	c, err := s.Network.Channel(id)
+	if err == nil {
+		s.logAction("TUNE", e.Request().URL.Path, c)
 	}
 	return e.NoContent(http.StatusNoContent)
 }

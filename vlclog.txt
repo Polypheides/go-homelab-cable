@@ -1,0 +1,548 @@
+﻿-- logger module started --
+main: one instance mode ENABLED
+﻿-- logger module started --
+main: one instance mode ENABLED
+main error: no suitable interface module
+main error: interface "pause_click,none" initialization failed
+cache_read error: cannot pre fill buffer
+main: Running vlc with the default interface. Use 'cvlc' to use vlc without interface.
+mjpeg error: cannot peek
+mjpeg error: cannot peek
+mjpeg error: cannot peek
+mkv error: Detected cluster without mandatory timecode
+mkv error: cannot find any cluster or chapter, damaged file ?
+mjpeg error: cannot peek
+cache_read error: cannot pre fill buffer
+mjpeg error: cannot peek
+avcodec: Using D3D11VA (NVIDIA GeForce RTX 5080, vendor 10de(NVIDIA), device 2c02, revision a1) for hardware decoding
+avcodec: Using D3D11VA (NVIDIA GeForce RTX 5080, vendor 10de(NVIDIA), device 2c02, revision a1) for hardware decoding
+direct3d11 error: SetThumbNailClip failed: 0x800706f4
+-- logger module stopped --
+eg
+main error: Timestamp conversion failed for 224376001: no reference clock
+main error: Could not convert timestamp 0 for faad
+main error: Timestamp conversion failed for 224397334: no reference clock
+main error: Could not convert timestamp 0 for faad
+main error: Timestamp conversion failed for 224418667: no reference clock
+main error: Could not convert timestamp 0 for faad
+main error: Timestamp conversion failed for 224440001: no reference clock
+main error: Could not convert timestamp 0 for faad
+main error: Timestamp conversion failed for 224461334: no reference clock
+main error: Could not convert timestamp 0 for faad
+main error: Timestamp conversion failed for 224136001: no reference clock
+main error: Could not get display date for timestamp 0
+main error: Timestamp conversion failed for 224136001: no reference clock
+main error: Could not convert timestamp 0 for FFmpeg
+direct3d11 error: SetThumbNailClip failed: 0x800706f4
+main error: buffer deadlock prevented
+mpeg4audio: AAC channels: 2 samplerate: 48000
+avcodec: Using D3D11VA (NVIDIA GeForce RTX 5080, vendor 10de(NVIDIA), device 2c02, revision a1) for hardware decoding
+direct3d11 error: SetThumbNailClip failed: 0x800706f4
+mpeg4audio: AAC channels: 2 samplerate: 48000
+main error: buffer deadlock prevented
+avcodec: Using D3D11VA (NVIDIA GeForce RTX 5080, vendor 10de(NVIDIA), device 2c02, revision a1) for hardware decoding
+ts error: libdvbpsi error (PSI decoder): TS discontinuity (received 0, expected 13) for PID 17
+ts error: libdvbpsi error (PSI decoder): TS discontinuity (received 0, expected 12) for PID 0
+ts error: libdvbpsi error (PSI decoder): TS discontinuity (received 0, expected 12) for PID 4096
+main error: ES_OUT_SET_(GROUP_)PCR  is called too late (pts_delay increased to 1000 ms)
+hevc: Waiting for VPS/SPS/PPS
+main error: buffer deadlock prevented
+hevc: Waiting for VPS/SPS/PPS
+hevc: Waiting for VPS/SPS/PPS
+hevc: Waiting for VPS/SPS/PPS
+hevc: Waiting for VPS/SPS/PPS
+direct3d11 error: SetThumbNailClip failed: 0x800706f4
+mpeg4audio: AAC channels: 2 samplerate: 48000
+main error: buffer deadlock prevented
+avcodec: Using D3D11VA (NVIDIA GeForce RTX 5080, vendor 10de(NVIDIA), device 2c02, revision a1) for hardware decoding
+direct3d11 error: SetThumbNailClip failed: 0x800706f4
+mpeg4audio: AAC channels: 2 samplerate: 48000
+main error: buffer deadlock prevented
+avcodec: Using D3D11VA (NVIDIA GeForce RTX 5080, vendor 10de(NVIDIA), device 2c02, revision a1) for hardware decoding
+ts error: libdvbpsi error (PSI decoder): TS discontinuity (received 0, expected 6) for PID 17
+ts error: libdvbpsi error (PSI decoder): TS discontinuity (received 0, expected 9) for PID 0
+ts error: libdvbpsi error (PSI decoder): TS discontinuity (received 0, expected 9) for PID 4096
+main error: ES_OUT_SET_(GROUP_)PCR  is called too late (pts_delay increased to 1000 ms)
+direct3d11 error: SetThumbNailClip failed: 0x800706f4
+avcodec: Using D3D11VA (NVIDIA GeForce RTX 5080, vendor 10de(NVIDIA), device 2c02, revision a1) for hardware decoding
+ts error: libdvbpsi error (PSI decoder): TS discontinuity (received 0, expected 11) for PID 17
+ts error: libdvbpsi error (PSI decoder): TS discontinuity (received 0, expected 8) for PID 0
+ts error: libdvbpsi error (PSI decoder): TS discontinuity (received 0, expected 8) for PID 4096
+main error: ES_OUT_SET_(GROUP_)PCR  is called too late (jitter of 18204 ms ignored)
+main error: Timestamp conversion failed for 1933333: no reference clock
+main error: Could not convert timestamp 0 for faad
+main error: Timestamp conversion failed for 1954667: no reference clock
+main error: Could not convert timestamp 0 for faad
+main error: Timestamp conversion failed for 1976000: no reference clock
+main error: Could not convert timestamp 0 for faad
+main error: Timestamp conversion failed for 1997333: no reference clock
+main error: Could not convert timestamp 0 for faad
+main error: Timestamp conversion failed for 2018667: no reference clock
+main error: Could not convert timestamp 0 for faad
+main error: Timestamp conversion failed for 2040000: no reference clock
+main error: Could not convert timestamp 0 for faad
+main error: Timestamp conversion failed for 22866667: no reference clock
+main error: Could not get display date for timestamp 0
+main error: Timestamp conversion failed for 22866667: no reference clock
+main error: Could not convert timestamp 0 for FFmpeg
+main error: Timestamp conversion failed for 2061333: no reference clock
+main error: Could not convert timestamp 0 for faad
+main error: Timestamp conversion failed for 2082667: no reference clock
+main error: Could not convert timestamp 0 for faad
+main error: Timestamp conversion failed for 2104000: no reference clock
+main error: Could not convert timestamp 0 for faad
+main error: Timestamp conversion failed for 2125333: no reference clock
+main error: Could not convert timestamp 0 for faad
+main error: Timestamp conversion failed for 2146667: no reference clock
+main error: Could not convert timestamp 0 for faad
+main error: Timestamp conversion failed for 2168000: no reference clock
+main error: Could not convert timestamp 0 for faad
+main error: Timestamp conversion failed for 2189333: no reference clock
+main error: Could not convert timestamp 0 for faad
+main error: Timestamp conversion failed for 2210667: no reference clock
+main error: Could not convert timestamp 0 for faad
+main error: Timestamp conversion failed for 2232000: no reference clock
+main error: Could not convert timestamp 0 for faad
+main error: Timestamp conversion failed for 2253333: no reference clock
+main error: Could not convert timestamp 0 for faad
+main error: Timestamp conversion failed for 2274667: no reference clock
+main error: Could not convert timestamp 0 for faad
+main error: Timestamp conversion failed for 2296000: no reference clock
+main error: Could not convert timestamp 0 for faad
+main error: Timestamp conversion failed for 2317333: no reference clock
+main error: Could not convert timestamp 0 for faad
+main error: Timestamp conversion failed for 2338667: no reference clock
+main error: Could not convert timestamp 0 for faad
+main error: Timestamp conversion failed for 2360000: no reference clock
+main error: Could not convert timestamp 0 for faad
+main error: Timestamp conversion failed for 2381333: no reference clock
+main error: Could not convert timestamp 0 for faad
+main error: Timestamp conversion failed for 2402667: no reference clock
+main error: Could not convert timestamp 0 for faad
+main error: Timestamp conversion failed for 2424000: no reference clock
+main error: Could not convert timestamp 0 for faad
+main error: Timestamp conversion failed for 2445333: no reference clock
+main error: Could not convert timestamp 0 for faad
+main error: Timestamp conversion failed for 2466667: no reference clock
+main error: Could not convert timestamp 0 for faad
+main error: Timestamp conversion failed for 2488000: no reference clock
+main error: Could not convert timestamp 0 for faad
+main error: Timestamp conversion failed for 2509333: no reference clock
+main error: Could not convert timestamp 0 for faad
+main error: Timestamp conversion failed for 2530667: no reference clock
+main error: Could not convert timestamp 0 for faad
+main error: Timestamp conversion failed for 2552000: no reference clock
+main error: Could not convert timestamp 0 for faad
+main error: Timestamp conversion failed for 2573333: no reference clock
+main error: Could not convert timestamp 0 for faad
+main error: Timestamp conversion failed for 2594667: no reference clock
+main error: Could not convert timestamp 0 for faad
+main error: Timestamp conversion failed for 2616000: no reference clock
+main error: Could not convert timestamp 0 for faad
+main error: Timestamp conversion failed for 2637333: no reference clock
+main error: Could not convert timestamp 0 for faad
+main error: Timestamp conversion failed for 2658667: no reference clock
+main error: Could not convert timestamp 0 for faad
+main error: Timestamp conversion failed for 2680000: no reference clock
+main error: Could not convert timestamp 0 for faad
+main error: Timestamp conversion failed for 2701333: no reference clock
+main error: Could not convert timestamp 0 for faad
+main error: Timestamp conversion failed for 2722667: no reference clock
+main error: Could not convert timestamp 0 for faad
+main error: Timestamp conversion failed for 2744000: no reference clock
+main error: Could not convert timestamp 0 for faad
+main error: Timestamp conversion failed for 2765333: no reference clock
+main error: Could not convert timestamp 0 for faad
+main error: Timestamp conversion failed for 2786667: no reference clock
+main error: Could not convert timestamp 0 for faad
+main error: Timestamp conversion failed for 2808000: no reference clock
+main error: Could not convert timestamp 0 for faad
+main error: Timestamp conversion failed for 2829333: no reference clock
+main error: Could not convert timestamp 0 for faad
+main error: Timestamp conversion failed for 2850667: no reference clock
+main error: Could not convert timestamp 0 for faad
+main error: Timestamp conversion failed for 2872000: no reference clock
+main error: Could not convert timestamp 0 for faad
+main error: Timestamp conversion failed for 2893333: no reference clock
+main error: Could not convert timestamp 0 for faad
+main error: Timestamp conversion failed for 2914667: no reference clock
+main error: Could not convert timestamp 0 for faad
+main error: Timestamp conversion failed for 2936000: no reference clock
+main error: Could not convert timestamp 0 for faad
+main error: Timestamp conversion failed for 2957333: no reference clock
+main error: Could not convert timestamp 0 for faad
+main error: Timestamp conversion failed for 2978667: no reference clock
+main error: Could not convert timestamp 0 for faad
+main error: Timestamp conversion failed for 3000000: no reference clock
+main error: Could not convert timestamp 0 for faad
+main error: Timestamp conversion failed for 3021333: no reference clock
+main error: Could not convert timestamp 0 for faad
+main error: Timestamp conversion failed for 3042667: no reference clock
+main error: Could not convert timestamp 0 for faad
+main error: Timestamp conversion failed for 3064000: no reference clock
+main error: Could not convert timestamp 0 for faad
+main error: Timestamp conversion failed for 3085333: no reference clock
+main error: Could not convert timestamp 0 for faad
+main error: Timestamp conversion failed for 3106667: no reference clock
+main error: Could not convert timestamp 0 for faad
+main error: Timestamp conversion failed for 3128000: no reference clock
+main error: Could not convert timestamp 0 for faad
+main error: Timestamp conversion failed for 3149333: no reference clock
+main error: Could not convert timestamp 0 for faad
+main error: Timestamp conversion failed for 3170667: no reference clock
+main error: Could not convert timestamp 0 for faad
+main error: Timestamp conversion failed for 3192000: no reference clock
+main error: Could not convert timestamp 0 for faad
+main error: Timestamp conversion failed for 3213333: no reference clock
+main error: Could not convert timestamp 0 for faad
+main error: Timestamp conversion failed for 3234667: no reference clock
+main error: Could not convert timestamp 0 for faad
+main error: Timestamp conversion failed for 3256000: no reference clock
+main error: Could not convert timestamp 0 for faad
+main error: Timestamp conversion failed for 3277333: no reference clock
+main error: Could not convert timestamp 0 for faad
+main error: Timestamp conversion failed for 3298667: no reference clock
+main error: Could not convert timestamp 0 for faad
+main error: Timestamp conversion failed for 3320000: no reference clock
+main error: Could not convert timestamp 0 for faad
+main error: Timestamp conversion failed for 3341333: no reference clock
+main error: Could not convert timestamp 0 for faad
+main error: Timestamp conversion failed for 3362667: no reference clock
+main error: Could not convert timestamp 0 for faad
+main error: Timestamp conversion failed for 3384000: no reference clock
+main error: Could not convert timestamp 0 for faad
+main error: Timestamp conversion failed for 3405333: no reference clock
+main error: Could not convert timestamp 0 for faad
+main error: Timestamp conversion failed for 3426667: no reference clock
+main error: Could not convert timestamp 0 for faad
+main error: Timestamp conversion failed for 3448000: no reference clock
+main error: Could not convert timestamp 0 for faad
+main error: Timestamp conversion failed for 3469333: no reference clock
+main error: Could not convert timestamp 0 for faad
+main error: Timestamp conversion failed for 3490667: no reference clock
+main error: Could not convert timestamp 0 for faad
+main error: Timestamp conversion failed for 3512000: no reference clock
+main error: Could not convert timestamp 0 for faad
+main error: Timestamp conversion failed for 3533333: no reference clock
+main error: Could not convert timestamp 0 for faad
+main error: Timestamp conversion failed for 3554667: no reference clock
+main error: Could not convert timestamp 0 for faad
+main error: Timestamp conversion failed for 3576000: no reference clock
+main error: Could not convert timestamp 0 for faad
+main error: Timestamp conversion failed for 3597333: no reference clock
+main error: Could not convert timestamp 0 for faad
+main error: Timestamp conversion failed for 3618667: no reference clock
+main error: Could not convert timestamp 0 for faad
+main error: Timestamp conversion failed for 3640000: no reference clock
+main error: Could not convert timestamp 0 for faad
+main error: Timestamp conversion failed for 3661333: no reference clock
+main error: Could not convert timestamp 0 for faad
+main error: Timestamp conversion failed for 3682667: no reference clock
+main error: Could not convert timestamp 0 for faad
+main error: Timestamp conversion failed for 3704000: no reference clock
+main error: Could not convert timestamp 0 for faad
+main error: Timestamp conversion failed for 3725333: no reference clock
+main error: Could not convert timestamp 0 for faad
+main error: Timestamp conversion failed for 3746667: no reference clock
+main error: Could not convert timestamp 0 for faad
+main error: Timestamp conversion failed for 3768000: no reference clock
+main error: Could not convert timestamp 0 for faad
+main error: Timestamp conversion failed for 3789333: no reference clock
+main error: Could not convert timestamp 0 for faad
+main error: Timestamp conversion failed for 3810667: no reference clock
+main error: Could not convert timestamp 0 for faad
+main error: Timestamp conversion failed for 3832000: no reference clock
+main error: Could not convert timestamp 0 for faad
+main error: Timestamp conversion failed for 3853333: no reference clock
+main error: Could not convert timestamp 0 for faad
+main error: Timestamp conversion failed for 3874667: no reference clock
+main error: Could not convert timestamp 0 for faad
+main error: Timestamp conversion failed for 3896000: no reference clock
+main error: Could not convert timestamp 0 for faad
+main error: Timestamp conversion failed for 3917333: no reference clock
+main error: Could not convert timestamp 0 for faad
+main error: Timestamp conversion failed for 3938667: no reference clock
+main error: Could not convert timestamp 0 for faad
+main error: Timestamp conversion failed for 3960000: no reference clock
+main error: Could not convert timestamp 0 for faad
+main error: Timestamp conversion failed for 3981333: no reference clock
+main error: Could not convert timestamp 0 for faad
+main error: Timestamp conversion failed for 4002667: no reference clock
+main error: Could not convert timestamp 0 for faad
+main error: Timestamp conversion failed for 4024000: no reference clock
+main error: Could not convert timestamp 0 for faad
+main error: Timestamp conversion failed for 4045333: no reference clock
+main error: Could not convert timestamp 0 for faad
+main error: Timestamp conversion failed for 4066667: no reference clock
+main error: Could not convert timestamp 0 for faad
+main error: Timestamp conversion failed for 4088000: no reference clock
+main error: Could not convert timestamp 0 for faad
+main error: Timestamp conversion failed for 4109333: no reference clock
+main error: Could not convert timestamp 0 for faad
+main error: Timestamp conversion failed for 4130667: no reference clock
+main error: Could not convert timestamp 0 for faad
+main error: Timestamp conversion failed for 4152000: no reference clock
+main error: Could not convert timestamp 0 for faad
+main error: Timestamp conversion failed for 4173333: no reference clock
+main error: Could not convert timestamp 0 for faad
+main error: Timestamp conversion failed for 4194667: no reference clock
+main error: Could not convert timestamp 0 for faad
+main error: Timestamp conversion failed for 4216000: no reference clock
+main error: Could not convert timestamp 0 for faad
+main error: Timestamp conversion failed for 4237333: no reference clock
+main error: Could not convert timestamp 0 for faad
+main error: Timestamp conversion failed for 4258667: no reference clock
+main error: Could not convert timestamp 0 for faad
+main error: Timestamp conversion failed for 4280000: no reference clock
+main error: Could not convert timestamp 0 for faad
+main error: Timestamp conversion failed for 4301333: no reference clock
+main error: Could not convert timestamp 0 for faad
+main error: Timestamp conversion failed for 4322667: no reference clock
+main error: Could not convert timestamp 0 for faad
+main error: Timestamp conversion failed for 4344000: no reference clock
+main error: Could not convert timestamp 0 for faad
+main error: Timestamp conversion failed for 4365333: no reference clock
+main error: Could not convert timestamp 0 for faad
+main error: Timestamp conversion failed for 4386667: no reference clock
+main error: Could not convert timestamp 0 for faad
+main error: Timestamp conversion failed for 4408000: no reference clock
+main error: Could not convert timestamp 0 for faad
+main error: Timestamp conversion failed for 4429333: no reference clock
+main error: Could not convert timestamp 0 for faad
+main error: Timestamp conversion failed for 4450667: no reference clock
+main error: Could not convert timestamp 0 for faad
+main error: Timestamp conversion failed for 4472000: no reference clock
+main error: Could not convert timestamp 0 for faad
+main error: Timestamp conversion failed for 4493333: no reference clock
+main error: Could not convert timestamp 0 for faad
+main error: Timestamp conversion failed for 4514667: no reference clock
+main error: Could not convert timestamp 0 for faad
+main error: Timestamp conversion failed for 4536000: no reference clock
+main error: Could not convert timestamp 0 for faad
+main error: Timestamp conversion failed for 4557333: no reference clock
+main error: Could not convert timestamp 0 for faad
+main error: Timestamp conversion failed for 4578667: no reference clock
+main error: Could not convert timestamp 0 for faad
+main error: Timestamp conversion failed for 4600000: no reference clock
+main error: Could not convert timestamp 0 for faad
+main error: Timestamp conversion failed for 4621333: no reference clock
+main error: Could not convert timestamp 0 for faad
+main error: Timestamp conversion failed for 4642667: no reference clock
+main error: Could not convert timestamp 0 for faad
+main error: Timestamp conversion failed for 4664000: no reference clock
+main error: Could not convert timestamp 0 for faad
+main error: Timestamp conversion failed for 4685333: no reference clock
+main error: Could not convert timestamp 0 for faad
+main error: Timestamp conversion failed for 4706667: no reference clock
+main error: Could not convert timestamp 0 for faad
+main error: Timestamp conversion failed for 4728000: no reference clock
+main error: Could not convert timestamp 0 for faad
+main error: Timestamp conversion failed for 4749333: no reference clock
+main error: Could not convert timestamp 0 for faad
+main error: Timestamp conversion failed for 4770667: no reference clock
+main error: Could not convert timestamp 0 for faad
+main error: Timestamp conversion failed for 4792000: no reference clock
+main error: Could not convert timestamp 0 for faad
+main error: Timestamp conversion failed for 4813333: no reference clock
+main error: Could not convert timestamp 0 for faad
+main error: Timestamp conversion failed for 4834667: no reference clock
+main error: Could not convert timestamp 0 for faad
+main error: Timestamp conversion failed for 4856000: no reference clock
+main error: Could not convert timestamp 0 for faad
+main error: Timestamp conversion failed for 4877333: no reference clock
+main error: Could not convert timestamp 0 for faad
+main error: Timestamp conversion failed for 4898667: no reference clock
+main error: Could not convert timestamp 0 for faad
+main error: Timestamp conversion failed for 4920000: no reference clock
+main error: Could not convert timestamp 0 for faad
+main error: Timestamp conversion failed for 4941333: no reference clock
+main error: Could not convert timestamp 0 for faad
+main error: Timestamp conversion failed for 4962667: no reference clock
+main error: Could not convert timestamp 0 for faad
+main error: Timestamp conversion failed for 4984000: no reference clock
+main error: Could not convert timestamp 0 for faad
+main error: Timestamp conversion failed for 5005333: no reference clock
+main error: Could not convert timestamp 0 for faad
+main error: Timestamp conversion failed for 5026667: no reference clock
+main error: Could not convert timestamp 0 for faad
+main error: Timestamp conversion failed for 5048000: no reference clock
+main error: Could not convert timestamp 0 for faad
+main error: Timestamp conversion failed for 5069333: no reference clock
+main error: Could not convert timestamp 0 for faad
+main error: Timestamp conversion failed for 5090667: no reference clock
+main error: Could not convert timestamp 0 for faad
+main error: Timestamp conversion failed for 5112000: no reference clock
+main error: Could not convert timestamp 0 for faad
+main error: Timestamp conversion failed for 5133333: no reference clock
+main error: Could not convert timestamp 0 for faad
+main error: Timestamp conversion failed for 5154667: no reference clock
+main error: Could not convert timestamp 0 for faad
+main error: Timestamp conversion failed for 5176000: no reference clock
+main error: Could not convert timestamp 0 for faad
+main error: Timestamp conversion failed for 5197333: no reference clock
+main error: Could not convert timestamp 0 for faad
+main error: Timestamp conversion failed for 5218667: no reference clock
+main error: Could not convert timestamp 0 for faad
+main error: Timestamp conversion failed for 5240000: no reference clock
+main error: Could not convert timestamp 0 for faad
+main error: Timestamp conversion failed for 5261333: no reference clock
+main error: Could not convert timestamp 0 for faad
+main error: Timestamp conversion failed for 5282667: no reference clock
+main error: Could not convert timestamp 0 for faad
+main error: Timestamp conversion failed for 5304000: no reference clock
+main error: Could not convert timestamp 0 for faad
+main error: Timestamp conversion failed for 5325333: no reference clock
+main error: Could not convert timestamp 0 for faad
+main error: Timestamp conversion failed for 5346667: no reference clock
+main error: Could not convert timestamp 0 for faad
+main error: Timestamp conversion failed for 5368000: no reference clock
+main error: Could not convert timestamp 0 for faad
+main error: Timestamp conversion failed for 5389333: no reference clock
+main error: Could not convert timestamp 0 for faad
+main error: Timestamp conversion failed for 5410667: no reference clock
+main error: Could not convert timestamp 0 for faad
+main error: Timestamp conversion failed for 5432000: no reference clock
+main error: Could not convert timestamp 0 for faad
+main error: Timestamp conversion failed for 5453333: no reference clock
+main error: Could not convert timestamp 0 for faad
+main error: Timestamp conversion failed for 5474667: no reference clock
+main error: Could not convert timestamp 0 for faad
+main error: Timestamp conversion failed for 5496000: no reference clock
+main error: Could not convert timestamp 0 for faad
+main error: Timestamp conversion failed for 5517333: no reference clock
+main error: Could not convert timestamp 0 for faad
+main error: Timestamp conversion failed for 5538667: no reference clock
+main error: Could not convert timestamp 0 for faad
+main error: Timestamp conversion failed for 5560000: no reference clock
+main error: Could not convert timestamp 0 for faad
+main error: Timestamp conversion failed for 5581333: no reference clock
+main error: Could not convert timestamp 0 for faad
+main error: Timestamp conversion failed for 5602667: no reference clock
+main error: Could not convert timestamp 0 for faad
+main error: Timestamp conversion failed for 5624000: no reference clock
+main error: Could not convert timestamp 0 for faad
+main error: Timestamp conversion failed for 5645333: no reference clock
+main error: Could not convert timestamp 0 for faad
+main error: Timestamp conversion failed for 5666667: no reference clock
+main error: Could not convert timestamp 0 for faad
+main error: Timestamp conversion failed for 5688000: no reference clock
+main error: Could not convert timestamp 0 for faad
+main error: Timestamp conversion failed for 5709333: no reference clock
+main error: Could not convert timestamp 0 for faad
+main error: Timestamp conversion failed for 5730667: no reference clock
+main error: Could not convert timestamp 0 for faad
+main error: Timestamp conversion failed for 5752000: no reference clock
+main error: Could not convert timestamp 0 for faad
+main error: Timestamp conversion failed for 5773333: no reference clock
+main error: Could not convert timestamp 0 for faad
+main error: Timestamp conversion failed for 5794667: no reference clock
+main error: Could not convert timestamp 0 for faad
+main error: Timestamp conversion failed for 5816000: no reference clock
+main error: Could not convert timestamp 0 for faad
+main error: Timestamp conversion failed for 5837333: no reference clock
+main error: Could not convert timestamp 0 for faad
+main error: Timestamp conversion failed for 5858667: no reference clock
+main error: Could not convert timestamp 0 for faad
+main error: Timestamp conversion failed for 5880000: no reference clock
+main error: Could not convert timestamp 0 for faad
+main error: Timestamp conversion failed for 5901333: no reference clock
+main error: Could not convert timestamp 0 for faad
+main error: Timestamp conversion failed for 5922667: no reference clock
+main error: Could not convert timestamp 0 for faad
+main error: Timestamp conversion failed for 5944000: no reference clock
+main error: Could not convert timestamp 0 for faad
+main error: Timestamp conversion failed for 5965333: no reference clock
+main error: Could not convert timestamp 0 for faad
+main error: Timestamp conversion failed for 5986667: no reference clock
+main error: Could not convert timestamp 0 for faad
+main error: Timestamp conversion failed for 6008000: no reference clock
+main error: Could not convert timestamp 0 for faad
+main error: Timestamp conversion failed for 6029333: no reference clock
+main error: Could not convert timestamp 0 for faad
+main error: Timestamp conversion failed for 6050667: no reference clock
+main error: Could not convert timestamp 0 for faad
+main error: Timestamp conversion failed for 6072000: no reference clock
+main error: Could not convert timestamp 0 for faad
+main error: Timestamp conversion failed for 6093333: no reference clock
+main error: Could not convert timestamp 0 for faad
+main error: Timestamp conversion failed for 6114667: no reference clock
+main error: Could not convert timestamp 0 for faad
+main error: Timestamp conversion failed for 6136000: no reference clock
+main error: Could not convert timestamp 0 for faad
+main error: Timestamp conversion failed for 6157333: no reference clock
+main error: Could not convert timestamp 0 for faad
+main error: Timestamp conversion failed for 6178667: no reference clock
+main error: Could not convert timestamp 0 for faad
+main error: Timestamp conversion failed for 6200000: no reference clock
+main error: Could not convert timestamp 0 for faad
+main error: Timestamp conversion failed for 6221333: no reference clock
+main error: Could not convert timestamp 0 for faad
+main error: Timestamp conversion failed for 6242667: no reference clock
+main error: Could not convert timestamp 0 for faad
+main error: Timestamp conversion failed for 6264000: no reference clock
+main error: Could not convert timestamp 0 for faad
+main error: Timestamp conversion failed for 6285333: no reference clock
+main error: Could not convert timestamp 0 for faad
+main error: Timestamp conversion failed for 6306667: no reference clock
+main error: Could not convert timestamp 0 for faad
+main error: Timestamp conversion failed for 6328000: no reference clock
+main error: Could not convert timestamp 0 for faad
+main error: Timestamp conversion failed for 6349333: no reference clock
+main error: Could not convert timestamp 0 for faad
+main error: Timestamp conversion failed for 6370667: no reference clock
+main error: Could not convert timestamp 0 for faad
+main error: Timestamp conversion failed for 6392000: no reference clock
+main error: Could not convert timestamp 0 for faad
+main error: Timestamp conversion failed for 6413333: no reference clock
+main error: Could not convert timestamp 0 for faad
+main error: Timestamp conversion failed for 6434667: no reference clock
+main error: Could not convert timestamp 0 for faad
+main error: Timestamp conversion failed for 6456000: no reference clock
+main error: Could not convert timestamp 0 for faad
+main error: Timestamp conversion failed for 6477333: no reference clock
+main error: Could not convert timestamp 0 for faad
+main error: Timestamp conversion failed for 6498667: no reference clock
+main error: Could not convert timestamp 0 for faad
+main error: Timestamp conversion failed for 6520000: no reference clock
+main error: Could not convert timestamp 0 for faad
+main error: Timestamp conversion failed for 6541333: no reference clock
+main error: Could not convert timestamp 0 for faad
+main error: Timestamp conversion failed for 6562667: no reference clock
+main error: Could not convert timestamp 0 for faad
+main error: Timestamp conversion failed for 6584000: no reference clock
+main error: Could not convert timestamp 0 for faad
+main error: Timestamp conversion failed for 6605333: no reference clock
+main error: Could not convert timestamp 0 for faad
+main error: Timestamp conversion failed for 6626667: no reference clock
+main error: Could not convert timestamp 0 for faad
+main error: Timestamp conversion failed for 6648000: no reference clock
+main error: Could not convert timestamp 0 for faad
+main error: Timestamp conversion failed for 6669333: no reference clock
+main error: Could not convert timestamp 0 for faad
+main error: Timestamp conversion failed for 6690667: no reference clock
+main error: Could not convert timestamp 0 for faad
+main error: Timestamp conversion failed for 6712000: no reference clock
+main error: Could not convert timestamp 0 for faad
+main error: Timestamp conversion failed for 6733333: no reference clock
+main error: Could not convert timestamp 0 for faad
+main error: Timestamp conversion failed for 6754667: no reference clock
+main error: Could not convert timestamp 0 for faad
+main error: Timestamp conversion failed for 6776000: no reference clock
+main error: Could not convert timestamp 0 for faad
+main error: Timestamp conversion failed for 6797333: no reference clock
+main error: Could not convert timestamp 0 for faad
+main error: Timestamp conversion failed for 6818667: no reference clock
+main error: Could not convert timestamp 0 for faad
+main error: Timestamp conversion failed for 6840000: no reference clock
+main error: Could not convert timestamp 0 for faad
+main error: Timestamp conversion failed for 6861333: no reference clock
+main error: Could not convert timestamp 0 for faad
+main error: Timestamp conversion failed for 6882667: no reference clock
+main error: Could not convert timestamp 0 for faad
+main error: Timestamp conversion failed (delay 1000000, buffering 7500, bound 9000000)
+main error: Could not convert timestamp 7851374000 for FFmpeg
+main error: Timestamp conversion failed (delay 1000000, buffering 7500, bound 9000000)
+main error: Could not convert timestamp 7851414000 for FFmpeg
+main error: Timestamp conversion failed (delay 1000000, buffering 7500, bound 9000000)
+main error: Could not convert timestamp 7851454000 for FFmpeg
+main error: Timestamp conve

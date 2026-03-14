@@ -15,6 +15,7 @@ type Network struct {
 	Name     string
 	Owner    string
 	CallSign string
+	Protocol string // "udp" or "tcp"
 
 	mu             sync.RWMutex
 	channels       map[string]*Channel
@@ -23,7 +24,7 @@ type Network struct {
 	master         *player.MasterBroadcaster // Port 4999 relay
 }
 
-func NewNetwork(name string, owner string, callSign string) *Network {
+func NewNetwork(name string, owner string, callSign string, protocol string) *Network {
 	if name == "" {
 		name = "Homelab Cable"
 	}
@@ -33,15 +34,22 @@ func NewNetwork(name string, owner string, callSign string) *Network {
 	if callSign == "" {
 		callSign = "KHLC"
 	}
+	if protocol == "" {
+		protocol = "udp"
+	}
 
-	return &Network{
+	n := &Network{
 		Name:     name,
 		Owner:    owner,
 		CallSign: callSign,
+		Protocol: protocol,
 		channels: make(map[string]*Channel),
 		nextPort: 5000, // Starts at 5000
 		master:   player.NewMasterBroadcaster(),
 	}
+	n.master.Protocol = protocol
+
+	return n
 }
 
 func (n *Network) AddChannel(list *player.MediaList) *Channel {
@@ -51,7 +59,7 @@ func (n *Network) AddChannel(list *player.MediaList) *Channel {
 	// Derive friendly channel number exactly from the port offset
 	// e.g. Port 5000 -> Channel 0, Port 5001 -> Channel 1
 	channelNum := n.nextPort - 5000
-	c := NewChannel(list, n.nextPort, channelNum)
+	c := NewChannel(list, n.nextPort, channelNum, n.Protocol)
 	n.nextPort++
 
 	n.channels[c.ID] = c
@@ -160,5 +168,5 @@ func (n *Network) Live() string {
 
 // MasterStreamURL returns the fixed URL of the master relay port (4999).
 func (n *Network) MasterStreamURL() string {
-	return player.MasterStreamURL()
+	return player.MasterStreamURL(n.Protocol)
 }

@@ -1,9 +1,15 @@
 //go:build vlc
+
 package player
 
 import (
 	vlc "github.com/adrg/libvlc-go/v3"
 )
+
+// NewLivePlayer returns a VLCPlayer when the 'vlc' build tag is provided.
+func NewLivePlayer() Player {
+	return &VLCPlayer{}
+}
 
 type VLCPlayer struct {
 	list *MediaList
@@ -115,6 +121,26 @@ func (p *VLCPlayer) PlayNext() error {
 		p.currMedia.Release()
 	}
 	p.currMedia, err = p.player.LoadMediaFromPath(p.list.Advance())
+	if err != nil {
+		return err
+	}
+	return p.player.Play()
+}
+
+func (p *VLCPlayer) PlayPrevious() error {
+	if p.player == nil {
+		return ErrPlayerNotInitialized
+	}
+
+	var err error
+	err = p.player.Stop()
+	if err != nil {
+		return err
+	}
+	if p.currMedia != nil {
+		p.currMedia.Release()
+	}
+	p.currMedia, err = p.player.LoadMediaFromPath(p.list.Rewind())
 	if err != nil {
 		return err
 	}

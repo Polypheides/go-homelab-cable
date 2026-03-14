@@ -11,7 +11,17 @@
                 </div>
             </div>
         </div>
-        <div id="play-next-{{ .ID }}" class="play-next">
+        <div id="controls-{{ .ID }}" class="controls">
+            <button hx-put="/htmx/channels/{{ .ID }}/previous" 
+                    hx-swap="none"
+                    hx-on::after-request="window.location.reload()"
+                    class="metal linear small"><</button>
+
+            <button hx-put="/htmx/channels/{{ .ID }}/tune" 
+                    hx-swap="none"
+                    hx-on::after-request="window.location.reload()"
+                    class="metal linear small tune {{ if .Tuned }}active{{ end }}">TUNE</button>
+
             <button hx-put="/htmx/channels/{{ .ID }}/next" 
                     hx-swap="none"
                     hx-on::after-request="window.location.reload()"

@@ -10,6 +10,8 @@ import (
 	"github.com/Polypheides/go-homelab-cable/network"
 	"github.com/Polypheides/go-homelab-cable/player"
 	"github.com/Polypheides/go-homelab-cable/server"
+	"strconv"
+	"strings"
 	cli "github.com/urfave/cli/v2"
 )
 
@@ -20,22 +22,31 @@ func main() {
 				Name:  "server",
 				Usage: "start a homelab cable server",
 				Action: func(cCtx *cli.Context) error {
-					n := network.NewNetwork(cCtx.String("network_name"), cCtx.String("network_owner"), cCtx.String("network_callsign"))
+					n := network.NewNetwork(
+						cCtx.String("network_name"),
+						cCtx.String("network_owner"),
+						cCtx.String("network_callsign"),
+						cCtx.String("protocol"),
+					)
 					s := server.NewServer(cCtx.String("port"), n)
 					
-					strategy := player.MediaListSortStrategy(player.SortStratRandom{})
-					if cCtx.Bool("episodic") {
-						strategy = player.SortStratAlphabetical{}
-					}
-
+					// Handle unified paths: path[:season][:mode]
 					paths := cCtx.StringSlice("path")
-					for _, p := range paths {
-						list, err := player.FromFolder(p, strategy)
-						if err != nil {
-							return fmt.Errorf("couldn't load media from %s: %w", p, err)
+					for _, raw := range paths {
+						cfg := parseChannelConfig(raw)
+						
+						// Determine strategy
+						strategy := player.MediaListSortStrategy(player.SortStratRandom{})
+						if cfg.mode == "e" || (cfg.mode == "" && cCtx.Bool("episodic")) {
+							strategy = player.SortStratAlphabetical{}
 						}
+
+						list, err := player.FromFolderWithSeason(cfg.path, strategy, cfg.season)
+						if err != nil {
+							return fmt.Errorf("couldn't load media from %s: %w", cfg.path, err)
+						}
+						
 						c := n.AddChannel(list)
-						// Initialize all channels to be "ready" in the background
 						if n.Live() == "" {
 							_ = n.SetChannelLive(c.ID)
 						}
@@ -49,6 +60,11 @@ func main() {
 						Name:  "port",
 						Value: "3004",
 						Usage: "port to run on",
+					},
+					&cli.StringFlag{
+						Name:  "protocol",
+						Value: "udp",
+						Usage: "streaming protocol to use (udp, tcp)",
 					},
 					&cli.StringFlag{
 						Name:  "network_name",
@@ -67,17 +83,16 @@ func main() {
 					},
 					&cli.StringSliceFlag{
 						Name:     "path",
-						Usage:    "path to media folder (repeat for multiple channels)",
-						Required: true,
+						Usage:    "path[:season][:mode] (e.g. \"C:\\Shows:1:e\")",
 					},
 					&cli.BoolFlag{
 						Name:  "episodic",
-						Usage: "play media in alphabetical order (A-Z)",
+						Usage: "play media in alphabetical order (global default)",
 						Value: false,
 					},
 					&cli.BoolFlag{
 						Name:  "random",
-						Usage: "play media in random order (default)",
+						Usage: "play media in random order (global default)",
 						Value: true,
 					},
 				},
@@ -218,4 +233,40 @@ func printChannel(c *client.Client, channel domain.Channel) error {
 
 	fmt.Println(channel)
 	return nil
+}
+
+type channelConfig struct {
+	path   string
+	season int
+	mode   string
+}
+
+func parseChannelConfig(raw string) channelConfig {
+	parts := strings.Split(raw, ":")
+	if len(parts) == 0 {
+		return channelConfig{}
+	}
+
+	cfg := channelConfig{}
+	pathEndIdx := 1
+
+	// Handle Windows drive (e.g. "C:\")
+	if len(parts[0]) == 1 && len(parts) > 1 {
+		cfg.path = parts[0] + ":" + parts[1]
+		pathEndIdx = 2
+	} else {
+		cfg.path = parts[0]
+	}
+
+	// Process remaining parts
+	for i := pathEndIdx; i < len(parts); i++ {
+		p := strings.ToLower(parts[i])
+		if p == "e" || p == "r" {
+			cfg.mode = p
+		} else if s, err := strconv.Atoi(p); err == nil {
+			cfg.season = s
+		}
+	}
+
+	return cfg
 }

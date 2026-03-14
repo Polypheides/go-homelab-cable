@@ -101,7 +101,7 @@ body {
     align-items: center;
 }
 
-.play-next {
+.play-next, .controls {
     position: relative;
     display: flex;
     flex-direction: column;
@@ -110,6 +110,12 @@ body {
     flex-shrink: 0;
     margin-right: 20px;
     z-index: 10;
+}
+
+.controls {
+    flex-direction: row;
+    gap: 15px;
+    margin-right: 40px;
 }
 .button-indicator {
     color: white;
@@ -242,11 +248,18 @@ body {
     display: flex;
     align-items: center;
     justify-content: center;
+    font-size: 1.5em; /* Slightly smaller than 2em for symbols */
+}
+
+.metal.linear.small.tune {
+    width: 110px;    /* Wider base for the word TUNE */
+    font-size: 1rem; /* Smaller font for letters vs symbols */
+    letter-spacing: 1px;
 }
 
 /* active ------------------------- */
 
-.metal:active {
+.metal:active, .metal.active {
     color: hsl(210, 100%, 40%);
     text-shadow: hsla(210,100%,20%,.3) 0 -1px 0, hsl(210,100%,85%) 0 2px 1px, hsla(200,100%,80%,1) 0 0 5px, hsla(210,100%,50%,.6) 0 0 20px;
     box-shadow: 

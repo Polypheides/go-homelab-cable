@@ -13,16 +13,27 @@ type Channel struct {
 	broad  *player.Broadcaster
 }
 
-func NewChannel(list *player.MediaList, broadcasterPort int, number int) *Channel {
+func NewChannel(list *player.MediaList, broadcasterPort int, number int, protocol string) *Channel {
+	broad := player.NewBroadcaster(list, broadcasterPort)
+	broad.Protocol = protocol
+
 	c := &Channel{
 		ID:     uuid.New().String(),
 		Number: number,
 		list:   list,
-		broad:  player.NewBroadcaster(list, broadcasterPort),
+		broad:  broad,
 	}
 	// Start the background broadcast immediately
 	_ = c.broad.Start()
 	return c
+}
+
+func (c *Channel) Season() int {
+	return c.list.Season
+}
+
+func (c *Channel) SortMode() string {
+	return c.list.SortMode
 }
 
 func (c *Channel) PlayWith(p player.Player) error {
@@ -54,6 +65,11 @@ func (c *Channel) PlayNext() string {
 	_ = c.broad.Advance()
 	// If the viewer player is active, it will naturally pick up the stream change 
 	// because it's tuning into the same port.
+	return c.Current()
+}
+
+func (c *Channel) PlayPrevious() string {
+	_ = c.broad.Rewind()
 	return c.Current()
 }
 

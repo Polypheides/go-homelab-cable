@@ -1,8 +1,15 @@
+//go:build !vlc
+
 package player
 
 import (
 	"time"
 )
+
+// NewLivePlayer returns a NullPlayer by default when VLC is not enabled.
+func NewLivePlayer() Player {
+	return &NullPlayer{}
+}
 
 // NullPlayer advances the current item in the MediaList every 30 minutes. It (poorly) mimics the list of media being watched, as if it was on another channel.
 type NullPlayer struct {
@@ -45,6 +52,11 @@ func (n *NullPlayer) PlayNext() error {
 	return nil
 }
 
+func (n *NullPlayer) PlayPrevious() error {
+	n.list.Rewind()
+	return nil
+}
+
 func (n *NullPlayer) Next() string {
 	return n.list.Next()
 }
@@ -54,7 +66,11 @@ func (n *NullPlayer) Current() string {
 }
 
 func (n *NullPlayer) Shutdown() error {
-	n.ticker.Stop()
-	n.done <- true
+	if n.ticker != nil {
+		n.ticker.Stop()
+	}
+	if n.done != nil {
+		n.done <- true
+	}
 	return nil
 }

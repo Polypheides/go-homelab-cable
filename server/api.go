@@ -14,9 +14,10 @@ import (
 func (s *Server) getNetworks(e echo.Context) error {
 	return e.JSON(http.StatusOK, []domain.Network{
 		{
-			Name:     s.Network.Name,
-			Owner:    s.Network.Owner,
-			CallSign: s.Network.CallSign,
+			Name:            s.Network.Name,
+			Owner:           s.Network.Owner,
+			CallSign:        s.Network.CallSign,
+			MasterStreamURL: s.Network.MasterStreamURL(),
 		},
 	})
 }
@@ -67,10 +68,12 @@ func (s *Server) setChannelLive(e echo.Context) error {
 		}
 		return err
 	}
+
 	err = s.Network.SetChannelLive(c.ID)
 	if err != nil {
 		return err
 	}
+	s.logAction("TUNE", e.Request().URL.Path, c)
 	return s.jsonChannel(e, c)
 }
 
@@ -83,6 +86,7 @@ func (s *Server) playNext(e echo.Context) error {
 		return err
 	}
 	_ = c.PlayNext()
+	s.logAction("PUT", e.Request().URL.Path, c)
 	return s.jsonChannel(e, c)
 }
 
@@ -95,6 +99,7 @@ func (s *Server) playLiveNext(e echo.Context) error {
 		return err
 	}
 	_ = c.PlayNext()
+	s.logAction("PUT", e.Request().URL.Path, c)
 	return s.jsonChannel(e, c)
 }
 

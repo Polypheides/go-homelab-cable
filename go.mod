@@ -3,7 +3,7 @@ module github.com/Polypheides/go-homelab-cable
 go 1.20
 
 require (
-	github.com/adrg/libvlc-go/v3 v3.1.5
+	github.com/adrg/libvlc-go/v3 v3.1.6
 	github.com/labstack/echo/v4 v4.10.2
 	github.com/pkg/errors v0.9.1
 	github.com/urfave/cli/v2 v2.25.1
