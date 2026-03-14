@@ -19,6 +19,7 @@ type Channel struct {
 	HttpMasterStreamURL string `json:"http_master_stream_url,omitempty"`
 	Tuned               bool   `json:"tuned"`        // Is this channel showing on the host VLC window?
 	Broadcasting        bool   `json:"broadcasting"` // Is the FFmpeg stream active?
+	OverlayText         string `json:"overlay_text,omitempty"`
 }
 
 type Network struct {
@@ -44,6 +45,7 @@ func ToChannelModel(n *network.Network, c *network.Channel, host string) Channel
 		HttpMasterStreamURL: fmt.Sprintf("http://%s/master", host),
 		Tuned:               n.Live() == c.ID,
 		Broadcasting:        true, // In this architecture, added channels are always broadcasting
+		OverlayText:         c.OverlayText(),
 	}
 }
 

@@ -19,6 +19,7 @@ type Broadcaster struct {
 	Protocol     string // "udp", "tcp", or "http"
 	cmd          *exec.Cmd
 	playlistFile string
+	OverlayText  string
 
 	// TCP relay support
 	mu    sync.Mutex
@@ -134,7 +135,28 @@ func (b *Broadcaster) Start() error {
 		"-map", "0:v",
 		"-map", "0:a?",
 		"-sn",
-		"-c:v", "copy",
+	}
+
+	// Video Encoding & Overlay
+	if b.OverlayText != "" {
+		encoder, presetFlags := BestHEVCEncoder()
+		args = append(args, "-c:v", encoder)
+		args = append(args, presetFlags...)
+		args = append(args, "-crf", "23", "-tag:v", "hvc1")
+
+		// Add the Station Bug (Callsign) in the bottom-right corner.
+		// w-tw-40:h-th-40 puts it 40px from the bottom-right edges.
+		// fontcolor=white@0.4 makes it semi-transparent (60% transparent).
+		// We use a shadow to ensure it's readable on bright backgrounds.
+		drawText := fmt.Sprintf("drawtext=text='%s':fontcolor=white@0.4:fontsize=24:x=w-tw-40:y=h-th-40:shadowcolor=black@0.4:shadowx=2:shadowy=2", b.OverlayText)
+		args = append(args, "-vf", drawText)
+
+		fmt.Printf("[Broadcaster] Port %d: Enabling %s encoding with overlay bug: %s\n", b.port, encoder, b.OverlayText)
+	} else {
+		// Fallback to copy if no overlay is requested to save CPU
+		// But if the user wants "HEVC for everything", we'd change this to HEVC too.
+		// For now, keeping copy as the high-perf default if no bug is enabled.
+		args = append(args, "-c:v", "copy")
 	}
 
 	// Dynamic Audio Selection
@@ -153,7 +175,7 @@ func (b *Broadcaster) Start() error {
 			bitrate = "192k"
 		}
 		args = append(args, "-c:a", "ac3", "-ac", channels, "-b:a", bitrate)
-		args = append(args, "-af", "aresample=async=1:min_hard_comp=1.0")
+		args = append(args, "-af", "aresample=async=1:min_hard_comp=1.0,loudnorm")
 		if b.audioMeta != nil {
 			if b.ForceStereo && b.audioMeta.Channels > 2 {
 				fmt.Printf("[Broadcaster] Port %d: Downmixing %s (%d ch) to Stereo AC3 (ForceStereo)\n", b.port, b.audioMeta.Codec, b.audioMeta.Channels)
@@ -372,4 +394,53 @@ func (b *Broadcaster) StreamURL() string {
 
 func (b *Broadcaster) Hub() *StreamHub {
 	return b.hub
+}
+
+var (
+	hevcEncoderOnce sync.Once
+	detectedEncoder string
+)
+
+// BestHEVCEncoder probes the system for the best available HEVC hardware encoder.
+// It returns the encoder name and any required preset flags.
+func BestHEVCEncoder() (string, []string) {
+	hevcEncoderOnce.Do(func() {
+		out, err := exec.Command("ffmpeg", "-encoders").Output()
+		if err != nil {
+			detectedEncoder = "libx265"
+			return
+		}
+
+		encoders := string(out)
+		priority := []string{
+			"hevc_nvenc", // NVIDIA
+			"hevc_qsv",   // Intel
+			"hevc_amf",   // AMD
+			"hevc_vaapi", // Linux / Universal
+			"hevc_mf",    // Windows Media Foundation
+		}
+
+		for _, enc := range priority {
+			if strings.Contains(encoders, enc) {
+				detectedEncoder = enc
+				return
+			}
+		}
+		detectedEncoder = "libx265"
+	})
+
+	switch detectedEncoder {
+	case "hevc_nvenc":
+		return "hevc_nvenc", []string{"-preset", "p1"}
+	case "hevc_qsv":
+		return "hevc_qsv", []string{"-preset", "faster"}
+	case "hevc_amf":
+		return "hevc_amf", []string{"-quality", "speed"}
+	case "hevc_vaapi":
+		return "hevc_vaapi", []string{}
+	case "hevc_mf":
+		return "hevc_mf", []string{}
+	default:
+		return "libx265", []string{"-preset", "ultrafast"}
+	}
 }

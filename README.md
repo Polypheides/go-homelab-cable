@@ -27,7 +27,9 @@ graph TD
 - **TCP Fan-out Relayer**: Custom Go-side server allows **multiple simultaneous clients** to connect to the same TCP stream.
 - **HTTP Per-Channel Streams**: Every channel is accessible over HTTP at `http://<host>:<port>/<channel_num>/` — great for browser-based players and network compatibility.
 - **Premium Web Dashboard**: A modern, HTMX-powered interface featuring "metal" tactile controls and real-time "LCD" track updates with smooth DOM morphing.
-- **Developer-Friendly Logging**: Action-oriented server logs that show exactly what's playing on each channel without the background noise.
+- **Station "Broadcast Bug"**: Automatically burns your network callsign (e.g., **KHLC**) into the bottom-right corner as a semi-transparent, shadowed overlay for a professional broadcast look.
+- **Smart GPU Transcoding**: Transparently probes your hardware for NVIDIA (**NVENC**), Intel (**QSV**), AMD (**AMF**), or generic (**VAAPI/MF**) encoders. CPU usage stays low while keeping the "bug" active.
+- **Professional Audio Normalization**: Integrated `loudnorm` filter ensures every file matches the **EBU R128** television standard (-24.0 LUFS) with immediate true-peak limiting.
 - **Recursive Discovery**: Automatically find media in nested subfolders (e.g., `Season 1/`, `S02/`).
 
 ---
@@ -120,6 +122,12 @@ Run the server and point it to one or more folders. A "Channel" is automatically
 
 # Use TCP instead of UDP for the broadcast protocol
 ./cable.exe server --path "C:\Movies" --protocol tcp
+
+# Launch with a custom Callsign bug
+./cable.exe server --path "C:\Shows" --network_callsign "POL-TV"
+
+# Disable the Broadcast Bug overlay entirely
+./cable.exe server --path "C:\Shows" --no_bug
 ```
 
 > [!NOTE]
@@ -160,9 +168,10 @@ The CLI allows you to control your station from the terminal:
 
 - **Broadcaster**: Manages an independent FFmpeg process for each channel, streaming to unique ports (starting at 5000).
 - **MasterBroadcaster**: Relays the stream of the active channel to port 4999.
+- **Smart GPU Core**: Detects the best possible HEVC encoder at runtime (prioritizing HW over SW). All bugged streams are re-encoded into high-quality H.265 using vendor-optimized presets.
 - **Network Layer**: Thread-safe management of channel states and "Live" tuning logic.
 - **HTMX Server**: Provides a "morphed" real-time UI that reflects station changes across all connected browsers instantly.
-- **HTTP Streaming**: The Echo web server exposes `GET /master` and `GET /:channel_num/` as `video/mp2t` HTTP streams — a ring buffer fans the FFmpeg output out to all connected HTTP clients simultaneously, with no re-encoding.
+- **HTTP Streaming**: The Echo web server exposes `GET /master` and `GET /:channel_num/` as `video/mp2t` HTTP streams.
 
 ### Protocols at a Glance
 

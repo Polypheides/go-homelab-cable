@@ -41,6 +41,7 @@ func main() {
 						cCtx.String("protocol"),
 						cCtx.Bool("stereo"),
 					)
+					n.NoBug = cCtx.Bool("no_bug")
 					n.WebServerPort = cCtx.String("port") // Ensure Network knows its external web port
 					s := server.NewServer(cCtx.String("port"), n)
 
@@ -116,6 +117,11 @@ func main() {
 					&cli.BoolFlag{
 						Name:  "stereo",
 						Usage: "force 2-channel stereo AC3 for all broadcasts (better for old TVs/Pi)",
+						Value: false,
+					},
+					&cli.BoolFlag{
+						Name:  "no_bug",
+						Usage: "disable the station callsign overlay bug",
 						Value: false,
 					},
 				},

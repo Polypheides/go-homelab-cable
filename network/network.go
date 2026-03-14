@@ -16,6 +16,7 @@ type Network struct {
 	CallSign      string
 	Protocol      string // "udp" or "tcp"
 	StereoOnly    bool   // Forces all channels to stereo AC3 (idiot-device mode)
+	NoBug         bool
 	WebServerPort string
 
 	// Lock order (to prevent deadlocks): always acquire tuneMu before mu.
@@ -64,7 +65,11 @@ func (n *Network) AddChannel(list *player.MediaList) (*Channel, error) {
 	// Derive friendly channel number exactly from the port offset
 	// e.g. Port 5000 -> Channel 0, Port 5001 -> Channel 1
 	channelNum := n.nextPort - 5000
-	c, err := NewChannel(list, n.nextPort, channelNum, n.Protocol, n.StereoOnly)
+	callsign := n.CallSign
+	if n.NoBug {
+		callsign = ""
+	}
+	c, err := NewChannel(list, n.nextPort, channelNum, n.Protocol, n.StereoOnly, callsign)
 	if err != nil {
 		return nil, err
 	}
