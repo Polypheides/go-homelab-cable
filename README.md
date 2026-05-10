@@ -127,8 +127,11 @@ cable.exe server --path "C:\Shows" --network_callsign POLY-TV:#
 # "Standalone numbering (0, 1...)"
 cable.exe server --path "C:\Shows" --network_callsign #
 
-# "Use quotes in your callsign (e.g. POLY-TV")"
-cable.exe server --path "C:\Shows" --network_callsign POLY-TV\"
+# "Use quotes in your callsign (e.g. PN'''''ET)"
+cable.exe server --path "C:\Shows" --network_callsign "PN'''''ET"
+
+# "Use literal double quotes in your callsign (e.g. \"Poly\")"
+cable.exe server --path "C:\Shows" --network_callsign \"Poly\"
 
 # "Disable the Broadcast Bug overlay entirely"
 cable.exe server --path "C:\Shows" --no_bug

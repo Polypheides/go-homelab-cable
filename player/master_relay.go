@@ -11,7 +11,7 @@ import (
 	"time"
 )
 
-type httpClientKey struct{}
+
 
 type MasterBroadcaster struct {
 	cmd       *exec.Cmd

@@ -517,9 +517,18 @@ func splitArgs(s string) []string {
 	var args []string
 	var current strings.Builder
 	inQuotes := false
+	escaped := false
 
 	for _, r := range s {
+		if escaped {
+			current.WriteRune(r)
+			escaped = false
+			continue
+		}
+
 		switch {
+		case r == '\\':
+			escaped = true
 		case r == '"':
 			inQuotes = !inQuotes
 		case r == ' ' && !inQuotes:
