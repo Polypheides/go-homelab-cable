@@ -96,6 +96,11 @@ func (c *Channel) PlayPrevious() string {
 	return c.Current()
 }
 
+// Repair manually triggers the broadcaster to restart its current FFmpeg process.
+func (c *Channel) Repair() error {
+	return c.broad.Repair()
+}
+
 // BroadcastURL returns the local streaming URL for the channel's broadcast.
 func (c *Channel) BroadcastURL() string {
 	return c.broad.StreamURL()

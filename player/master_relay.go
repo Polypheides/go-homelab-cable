@@ -6,6 +6,7 @@ import (
 	"io"
 	"net"
 	"os/exec"
+	"strings"
 	"sync"
 	"time"
 )
@@ -20,6 +21,7 @@ type MasterBroadcaster struct {
 	conns     map[any]chan []byte
 	l         net.Listener
 	tuneMu    sync.Mutex
+	udpConn   *net.UDPConn
 }
 
 // NewMasterBroadcaster initializes a central relay engine for the active channel.
@@ -36,10 +38,25 @@ func (m *MasterBroadcaster) Tune(sourceURL string) error {
 	defer m.tuneMu.Unlock()
 
 	m.stopFFmpeg()
+	m.closeClients()
 
-	time.Sleep(250 * time.Millisecond)
+	time.Sleep(500 * time.Millisecond)
 	m.sourceURL = sourceURL
 	return m.start()
+}
+
+// closeClients forcefully disconnects all active relay clients.
+func (m *MasterBroadcaster) closeClients() {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+
+	for key, ch := range m.conns {
+		close(ch)
+		if conn, ok := key.(net.Conn); ok {
+			_ = conn.Close()
+		}
+	}
+	m.conns = make(map[any]chan []byte)
 }
 
 // start spawns the FFmpeg relay process for the master stream.
@@ -61,33 +78,56 @@ func (m *MasterBroadcaster) start() error {
 			go m.acceptLoop()
 		}
 	case "udp":
+		if m.udpConn == nil {
+			addr, err := net.ResolveUDPAddr("udp", fmt.Sprintf("127.0.0.1:%d", MasterPort))
+			if err != nil {
+				return err
+			}
+			m.udpConn, err = net.DialUDP("udp", nil, addr)
+			if err != nil {
+				return err
+			}
+		}
 	}
 
-	args := []string{
-		"-fflags", "+genpts+igndts+discardcorrupt+nobuffer",
-		"-analyzeduration", "1000000",
-		"-probesize", "1000000",
+	inputFlags, outputFlags := GetProtocolFlags(m.Protocol, true)
+
+	args := []string{}
+	args = append(args, inputFlags...)
+	args = append(args,
 		"-avoid_negative_ts", "make_zero",
 		"-i", m.sourceURL,
 		"-map", "0:v",
 		"-map", "0:a?",
 		"-sn",
 		"-c", "copy",
-		"-f", "mpegts",
-		"-mpegts_flags", "resend_headers+initial_discontinuity",
-		"-pat_period", "0.1",
-		"-y", outputURL,
-	}
+	)
+	args = append(args, outputFlags...)
 
+	if outputURL != "-" {
+		args = append(args, "-y")
+	}
+	args = append(args, outputURL)
+
+	MasterLog.Printf("[Master] Starting Relay...\n")
+	FFmpegLog.Printf("[Master] Launching FFmpeg Relay: ffmpeg %s\n", strings.Join(args, " "))
 	m.cmd = exec.Command("ffmpeg", args...)
 
 	stdout, err := m.cmd.StdoutPipe()
 	if err != nil {
 		return err
 	}
+
+	stderr, _ := m.cmd.StderrPipe()
+	LogFFmpegStderr(MasterLog.Printf, stderr, "FFmpeg:MASTER")
+
+	if err := m.cmd.Start(); err != nil {
+		return err
+	}
+
 	go m.relayLoop(stdout)
 
-	return m.cmd.Start()
+	return nil
 }
 
 // acceptLoop waits for incoming relay client connections.
@@ -125,35 +165,27 @@ func (m *MasterBroadcaster) connSender(conn net.Conn, ch chan []byte) {
 	}
 }
 
-// relayLoop reads the FFmpeg relay output and distributes it to all master clients.
+// relayLoop reads the master FFmpeg stdout and broadcasts it to all relay clients.
 func (m *MasterBroadcaster) relayLoop(r io.Reader) {
+	defer m.closeClients()
+
 	for {
-		buf := make([]byte, 188*10)
+		buf := make([]byte, 188*7) // 1316 bytes (fits in 1500 MTU)
 		n, err := r.Read(buf)
 		if n > 0 {
-			m.mu.Lock()
 			packet := make([]byte, n)
 			copy(packet, buf[:n])
-			for key, ch := range m.conns {
+
+			if m.Protocol == "udp" && m.udpConn != nil {
+				_, _ = m.udpConn.Write(packet)
+			}
+
+			m.mu.Lock()
+			for _, ch := range m.conns {
 				select {
 				case ch <- packet:
 				default:
-				mWipeLoop:
-					for {
-						select {
-						case _, ok := <-ch:
-							if !ok {
-								break mWipeLoop
-							}
-						default:
-							break mWipeLoop
-						}
-					}
-					select {
-					case ch <- packet:
-					default:
-					}
-					_ = key
+					// Skip if client buffer is full
 				}
 			}
 			m.mu.Unlock()
@@ -179,6 +211,10 @@ func (m *MasterBroadcaster) Stop() error {
 		}
 	}
 	m.conns = make(map[any]chan []byte)
+	if m.udpConn != nil {
+		_ = m.udpConn.Close()
+		m.udpConn = nil
+	}
 	m.mu.Unlock()
 	return nil
 }
@@ -195,7 +231,8 @@ func (m *MasterBroadcaster) stopFFmpeg() {
 // Stream registers a writer as a master relay client and pipes data to it.
 func (m *MasterBroadcaster) Stream(ctx context.Context, w io.Writer) error {
 	ch := make(chan []byte, 1024)
-	key := httpClientKey{}
+	// Use the channel itself as a unique key for this connection
+	key := ch
 
 	m.mu.Lock()
 	m.conns[key] = ch

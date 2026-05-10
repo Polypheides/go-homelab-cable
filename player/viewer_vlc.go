@@ -3,10 +3,11 @@
 package player
 
 import (
-	"fmt"
 	"os"
 	"os/exec"
+	"path/filepath"
 	"runtime"
+	"strings"
 	"sync"
 )
 
@@ -86,9 +87,35 @@ func findVLCBinary() string {
 	return ""
 }
 
+// findFFplayBinary searches the system and local bin/ for ffplay.
+func findFFplayBinary() string {
+	if path, err := exec.LookPath("ffplay"); err == nil {
+		return path
+	}
+
+	// Check local bin/
+	localPath := filepath.Join("bin", "ffplay")
+	if runtime.GOOS == "windows" {
+		localPath += ".exe"
+	}
+
+	if _, err := os.Stat(localPath); err == nil {
+		abs, _ := filepath.Abs(localPath)
+		return abs
+	}
+
+	return ""
+}
+
 // PlayURL launches a VLC process to play the specified master stream URL.
 func (p *VLCPlayer) PlayURL(url string) error {
-	if p.cmd != nil && p.cmd.Process != nil {
+	masterURL := MasterStreamURL(p.master.Protocol)
+
+	if p.cmd != nil && p.cmd.Process != nil && p.cmd.ProcessState == nil {
+		// If we are already playing the master stream, don't restart!
+		if url == masterURL {
+			return nil
+		}
 		_ = p.cmd.Process.Kill()
 		_ = p.cmd.Wait()
 		p.cmd = nil
@@ -96,26 +123,49 @@ func (p *VLCPlayer) PlayURL(url string) error {
 
 	bin := findVLCBinary()
 
-	masterURL := MasterStreamURL(p.master.Protocol)
-
 	if bin == "" {
-		fmt.Printf("[Player] VLC executable not found on host system. Operating in headless mode tracking stream: %s\n", masterURL)
-		return nil
+		// Fallback to ffplay as specified in the plan
+		if ffplay := findFFplayBinary(); ffplay != "" {
+			Log.Printf("[Player] VLC not found. Falling back to built-in ffplay...\n")
+			bin = ffplay
+		} else {
+			Log.Printf("[Player] Neither VLC nor ffplay found on host system. Operating in headless mode tracking stream: %s\n", masterURL)
+			return nil
+		}
 	}
 
-	args := []string{
-		"--fullscreen",
-		"--no-video-title-show",
-		"--play-and-exit",
-		masterURL,
+	var args []string
+	if strings.Contains(strings.ToLower(bin), "ffplay") {
+		args = []string{
+			"-window_title", "GoCable Master Stream (ffplay)",
+			"-loglevel", "error",
+			"-fs",
+			masterURL,
+		}
+	} else {
+		args = []string{
+			"--fullscreen",
+			"--no-video-title-show",
+			"--video-on-top",
+			"--qt-minimal-view",
+			"--no-qt-error-dialogs",
+			"--no-osd",
+			"--quiet",
+			masterURL,
+		}
 	}
 
 	p.cmd = exec.Command(bin, args...)
 
 	err := p.cmd.Start()
 	if err != nil {
-		fmt.Printf("[Player] Failed to launch VLC process securely. Falling back to headless execution: %v\n", err)
+		Log.Printf("[Player] Failed to launch VLC process securely. Falling back to headless execution: %v\n", err)
 		p.cmd = nil
+	} else {
+		// Watch the process in the background so we know if it exits
+		go func() {
+			_ = p.cmd.Wait()
+		}()
 	}
 
 	return nil

@@ -1,0 +1,47 @@
+<div id="remote-wrapper">
+    {{ $livePlaying := "NO SIGNAL" }}
+    {{ range .Channels }}
+    {{ if .Tuned }}
+    {{ $livePlaying = .Playing }}
+    {{ end }}
+    {{ end }}
+
+    <div class="remote-keypad-recess">
+        <div class="remote-top" style="margin-bottom: 20px;">
+            <div id="status-holder-live" class="status-holder">
+                <div id="status-lcd-live" class="status-lcd led led-old" data-id="live"
+                    data-playing="{{ $livePlaying }}">
+                    <div id="lcd-content-live" class="lcd-content">
+                        <span id="lcd-text-live" class="lcd-text">{{ $livePlaying }}</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="remote-nav-row">
+            <button id="btn-prev" hx-put="/api/networks/{{ .CallSignEscaped }}/live/previous" hx-swap="none"
+                hx-on::after-request="window.location.reload()" class="metal linear uniform-nav-btn">&lt;</button>
+
+            <button id="btn-next" hx-put="/api/networks/{{ .CallSignEscaped }}/live/next" hx-swap="none"
+                hx-on::after-request="window.location.reload()" class="metal linear uniform-nav-btn">&gt;</button>
+
+            <button id="btn-recall" hx-put="/api/networks/{{ .CallSignEscaped }}/live/recall" hx-swap="none"
+                hx-on::after-request="window.location.reload()" class="metal linear uniform-nav-btn">↩️</button>
+
+            <button id="btn-repair" hx-put="/api/networks/{{ .CallSignEscaped }}/live/repair" hx-swap="none"
+                hx-on::after-request="window.location.reload()" class="metal linear uniform-nav-btn">⚡</button>
+        </div>
+    </div>
+
+    <div class="remote-keypad-recess">
+        <div id="remote-btn-grid" class="remote-btn-grid">
+            {{ range .Channels }}
+            <button id="btn-ch-{{ .ID }}" hx-put="/api/networks/{{ $.CallSignEscaped }}/channels/{{ .ID }}/set_live"
+                hx-swap="none" hx-on::after-request="window.location.reload()"
+                class="metal linear uniform-btn {{ if .Tuned }}active{{ end }}">
+                {{ .Number }}
+            </button>
+            {{ end }}
+        </div>
+    </div>
+</div>

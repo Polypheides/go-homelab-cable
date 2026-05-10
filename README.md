@@ -27,7 +27,8 @@ graph TD
 - **TCP Fan-out Relayer**: Custom Go-side server allows **multiple simultaneous clients** to connect to the same TCP stream.
 - **HTTP Per-Channel Streams**: Every channel is accessible over HTTP at `http://<host>:<port>/<channel_num>/` — great for browser-based players and network compatibility.
 - **Premium Web Dashboard**: A modern, HTMX-powered interface featuring "metal" tactile controls and real-time "LCD" track updates with smooth DOM morphing.
-- **Station "Broadcast Bug"**: Automatically burns your network callsign (e.g., **KHLC**) into the bottom-right corner as a semi-transparent, shadowed overlay for a professional broadcast look.
+- **Station "Broadcast Bug"**: Automatically burns your network callsign (e.g., **KHLC**) into the bottom-right corner. Supports dynamic numbering via the `#` symbol (e.g., `PNET:#` becomes `PNET0`, `PNET1`, etc.).
+- **Ultra-Robust Rendering**: Uses a textfile-based injection for the overlay bug, ensuring that special characters, quotes (`'`), and colons are rendered perfectly without breaking the FFmpeg filter.
 - **Smart GPU Transcoding**: Transparently probes your hardware for NVIDIA (**NVENC**), Intel (**QSV**), AMD (**AMF**), or generic (**VAAPI/MF**) encoders. CPU usage stays low while keeping the "bug" active.
 - **Professional Audio Normalization**: Integrated `loudnorm` filter ensures every file matches the **EBU R128** television standard (-24.0 LUFS) with immediate true-peak limiting.
 - **Recursive Discovery**: Automatically find media in nested subfolders (e.g., `Season 1/`, `S02/`).
@@ -44,20 +45,14 @@ For the best experience (and smoothest transitions):
 
 ## 🔧 Dependencies
 
-Follow these steps exactly to get everything ready:
+GoCable aims to be as standalone as possible.
 
-### 1. Install FFmpeg (The Engine)
-- **Windows**: 
-  1. Download the "essentials" zip from [gyan.dev](https://www.gyan.dev/ffmpeg/builds/).
-  2. Extract it to `C:\ffmpeg`.
-  3. Search for "Edit the system environment variables" in Windows.
-  4. Click **Environment Variables** > **Path** > **Edit** > **New**.
-  5. Paste `C:\ffmpeg\bin` and click OK.
-- **Linux**: Run `sudo apt update && sudo apt install ffmpeg`.
+### 1. FFmpeg (The Engine) - **Automatic!**
+GoCable will now **automatically detect** if you have FFmpeg installed. If it's missing, the app will offer to download and set up a local version for you on the first run. No manual PATH editing required.
 
-### 2. Install VLC (The Screen)
-- Download and install normally from [videolan.org](https://www.videolan.org/vlc/).
-- **Linux Users**: If you want the server to open a window, also run `sudo apt install vlc libvlc-dev`.
+### 2. VLC (The Screen)
+- **Windows/Linux**: Download and install normally from [videolan.org](https://www.videolan.org/vlc/).
+- **Fallback**: If you don't have VLC, GoCable will use its built-in **ffplay** player (downloaded with FFmpeg) as a fallback.
 
 ### 3. Install Go (The Compiler)
 - Download from [go.dev](https://go.dev/dl/).
@@ -87,22 +82,22 @@ Follow these steps exactly to get everything ready:
 
 ### 1. Build the Application
 **Windows:**
-```powershell
-go build -o cable.exe ./cmds/cli
+```cmd
+go build -o cable.exe
 ```
 **Linux:**
 ```bash
-go build -o cable ./cmds/cli
+go build -o cable
 ```
 
 ### 2. Live GUI Mode (Requires VLC SDK)
 **Windows:**
-```powershell
-go build -tags vlc -o cable.exe ./cmds/cli
+```cmd
+go build -tags vlc -o cable.exe
 ```
 **Linux:**
 ```bash
-go build -tags vlc -o cable ./cmds/cli
+go build -tags vlc -o cable
 ```
 
 ---
@@ -116,19 +111,34 @@ Run the server and point it to one or more folders. A "Channel" is automatically
 - **Season**: (Optional) Provide a number to only play that season.
 - **Mode**: (Optional) Use `e` for Episodic (A-Z) or `r` for Random.
 
-```powershell
-# Binge Season 2 in order, then some Random Movies
-./cable.exe server --path "C:\Shows\ShowName:2:e" --path "C:\Movies:r"
+```cmd
+# "Open two concurrent channels: Season 2 (in order) and Movies (Random)" 
+cable.exe server --path "C:\Shows\ShowName:2:e" --path "C:\Movies:r"
 
-# Use TCP instead of UDP for the broadcast protocol
-./cable.exe server --path "C:\Movies" --protocol tcp
+# "Use TCP instead of UDP for the broadcast protocol"
+cable.exe server --path "C:\Movies" --protocol tcp
 
-# Launch with a custom Callsign bug
-./cable.exe server --path "C:\Shows" --network_callsign "POL-TV"
+# "Launch with a custom Callsign bug"
+cable.exe server --path "C:\Shows" --network_callsign POLY-TV
 
-# Disable the Broadcast Bug overlay entirely
-./cable.exe server --path "C:\Shows" --no_bug
+# "Launch with dynamic channel numbering (POLY-TV0, POLY-TV1...)"
+cable.exe server --path "C:\Shows" --network_callsign POLY-TV:#
+
+# "Standalone numbering (0, 1...)"
+cable.exe server --path "C:\Shows" --network_callsign #
+
+# "Use quotes in your callsign (e.g. POLY-TV")"
+cable.exe server --path "C:\Shows" --network_callsign POLY-TV\"
+
+# "Disable the Broadcast Bug overlay entirely"
+cable.exe server --path "C:\Shows" --no_bug
 ```
+
+> [!TIP]
+> **Shell Escaping**: If you want to include a literal double quote (`"`) in your callsign, use `\"`. This tells your shell (PowerShell or CMD) that the quote is part of the text and not the end of the command-line string.
+
+> [!TIP]
+> Use the `#` (number sign) to add the channel number to your callsign. **Strict Mode**: If you want to use a literal `#` in your name, simply exclude the colon (e.g., `#STATION:#` becomes `#STATION0`).
 
 > [!NOTE]
 > The `--protocol` flag controls the **UDP/TCP broadcast** on ports 5000+. HTTP streaming via the web server (`/master`, `/<channel_num>/`) is **always available** regardless of this flag.
@@ -172,6 +182,7 @@ The CLI allows you to control your station from the terminal:
 - **Network Layer**: Thread-safe management of channel states and "Live" tuning logic.
 - **HTMX Server**: Provides a "morphed" real-time UI that reflects station changes across all connected browsers instantly.
 - **HTTP Streaming**: The Echo web server exposes `GET /master` and `GET /:channel_num/` as `video/mp2t` HTTP streams.
+- **Graceful Shutdown**: Intercepts `Ctrl+C` signals to stop all FFmpeg processes cleanly, preventing file-access and muxing errors when closing the server.
 
 ### Protocols at a Glance
 

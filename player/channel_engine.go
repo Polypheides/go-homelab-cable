@@ -29,6 +29,8 @@ type Broadcaster struct {
 	audioMeta    *AudioMetadata
 	ForceStereo  bool
 	udpConn      *net.UDPConn
+	// CRITICAL: Required for robust textfile callsign rendering (e.g. P'''''NET:#)
+	OverlayFile string
 }
 
 type streamClient struct {
@@ -116,11 +118,13 @@ func (b *Broadcaster) Start() error {
 		}
 	}
 
+	inputFlags, outputFlags := GetProtocolFlags(b.Protocol, false)
+
 	args := []string{
 		"-re",
-		"-fflags", "+genpts+igndts+discardcorrupt",
-		"-analyzeduration", "5000000",
-		"-probesize", "5000000",
+	}
+	args = append(args, inputFlags...)
+	args = append(args,
 		"-avoid_negative_ts", "make_zero",
 		"-f", "concat",
 		"-safe", "0",
@@ -129,7 +133,7 @@ func (b *Broadcaster) Start() error {
 		"-map", "0:v",
 		"-map", "0:a?",
 		"-sn",
-	}
+	)
 
 	if b.OverlayText != "" {
 		encoder, presetFlags := BestHEVCEncoder()
@@ -137,10 +141,43 @@ func (b *Broadcaster) Start() error {
 		args = append(args, presetFlags...)
 		args = append(args, "-crf", "23", "-tag:v", "hvc1")
 
-		drawText := fmt.Sprintf("drawtext=text='%s':fontcolor=white@0.4:fontsize=24:x=w-tw-40:y=h-th-40:shadowcolor=black@0.4:shadowx=2:shadowy=2", b.OverlayText)
-		args = append(args, "-vf", drawText)
+		// CRITICAL: textfile is required for complex callsigns (e.g. P'''''NET:#)
+		tmpFile, err := os.CreateTemp("", "gocable_callsign_*.txt")
+		if err == nil {
+			tmpFile.WriteString(b.OverlayText)
+			tmpFile.Close()
+			b.OverlayFile = tmpFile.Name()
+			absPath, _ := filepath.Abs(b.OverlayFile)
 
-		fmt.Printf("[Broadcaster] Port %d: Enabling %s encoding with overlay bug: %s\n", b.port, encoder, b.OverlayText)
+			// FFmpeg filters on Windows require specific path escaping: / instead of \ and then escape the colon.
+			escapedPath := strings.ReplaceAll(absPath, "\\", "/")
+			escapedPath = strings.ReplaceAll(escapedPath, ":", "\\:")
+
+			fontPath := FindSystemFont()
+			fontOption := ""
+			if fontPath != "" {
+				escapedFontPath := strings.ReplaceAll(fontPath, "\\", "/")
+				escapedFontPath = strings.ReplaceAll(escapedFontPath, ":", "\\:")
+				fontOption = fmt.Sprintf("fontfile='%s':", escapedFontPath)
+			}
+
+			drawText := fmt.Sprintf("drawtext=%stextfile='%s':fontcolor=white@0.4:fontsize=24:x=w-tw-40:y=h-th-40:shadowcolor=black@0.4:shadowx=2:shadowy=2", fontOption, escapedPath)
+			args = append(args, "-vf", drawText)
+		} else {
+			// Extreme fallback to direct text if temp file fails (using basic escaping)
+			escapedText := strings.ReplaceAll(b.OverlayText, "'", "\\'")
+
+			fontPath := FindSystemFont()
+			fontOption := ""
+			if fontPath != "" {
+				escapedFontPath := strings.ReplaceAll(fontPath, "\\", "/")
+				escapedFontPath = strings.ReplaceAll(escapedFontPath, ":", "\\:")
+				fontOption = fmt.Sprintf("fontfile='%s':", escapedFontPath)
+			}
+
+			drawText := fmt.Sprintf("drawtext=%stext='%s':fontcolor=white@0.4:fontsize=24:x=w-tw-40:y=h-th-40:shadowcolor=black@0.4:shadowx=2:shadowy=2", fontOption, escapedText)
+			args = append(args, "-vf", drawText)
+		}
 	} else {
 		args = append(args, "-c:v", "copy")
 	}
@@ -149,9 +186,15 @@ func (b *Broadcaster) Start() error {
 		b.audioMeta, _ = ProbeMedia(b.list.Current())
 	}
 
-	if b.audioMeta != nil && (b.audioMeta.Codec == "ac3" || b.audioMeta.Codec == "eac3") && !b.ForceStereo {
-		args = append(args, "-c:a", "copy")
-		fmt.Printf("[Broadcaster] Port %d: Using native passthrough for %s codec\n", b.port, b.audioMeta.Codec)
+	if b.audioMeta != nil && (b.audioMeta.Codec == "ac3" || b.audioMeta.Codec == "eac3") {
+		// We can copy if not forcing stereo, OR if it's already stereo (or mono)
+		if !b.ForceStereo || b.audioMeta.Channels <= 2 {
+			args = append(args, "-c:a", "copy")
+		} else {
+			// ForceStereo is on and source is > 2 ch, must transcode
+			args = append(args, "-c:a", "ac3", "-ac", "2", "-b:a", "192k")
+			args = append(args, "-af", "aresample=async=1:min_hard_comp=1.0,loudnorm")
+		}
 	} else {
 		channels := "6"
 		bitrate := "640k"
@@ -161,24 +204,17 @@ func (b *Broadcaster) Start() error {
 		}
 		args = append(args, "-c:a", "ac3", "-ac", channels, "-b:a", bitrate)
 		args = append(args, "-af", "aresample=async=1:min_hard_comp=1.0,loudnorm")
-		if b.audioMeta != nil {
-			if b.ForceStereo && b.audioMeta.Channels > 2 {
-				fmt.Printf("[Broadcaster] Port %d: Downmixing %s (%d ch) to Stereo AC3 (ForceStereo)\n", b.port, b.audioMeta.Codec, b.audioMeta.Channels)
-			} else {
-				fmt.Printf("[Broadcaster] Port %d: Transcoding %s (%d ch) to AC3 %s ch\n", b.port, b.audioMeta.Codec, b.audioMeta.Channels, channels)
-			}
-		} else {
-			fmt.Printf("[Broadcaster] Port %d: Metadata probe failed, defaulting to AC3 %s ch transcoding\n", b.port, channels)
-		}
 	}
 
-	args = append(args,
-		"-f", "mpegts",
-		"-mpegts_flags", "resend_headers+initial_discontinuity",
-		"-pat_period", "0.1",
-		"-y", outputURL,
-	)
+	args = append(args, outputFlags...)
 
+	if outputURL != "-" {
+		args = append(args, "-y", outputURL)
+	} else {
+		args = append(args, "-")
+	}
+
+	FFmpegLog.Printf("[Broadcaster] Port %d: Launching FFmpeg: ffmpeg %s\n", b.port, strings.Join(args, " "))
 	b.cmd = exec.Command("ffmpeg", args...)
 
 	stdout, err := b.cmd.StdoutPipe()
@@ -186,7 +222,9 @@ func (b *Broadcaster) Start() error {
 		return err
 	}
 
-	fmt.Printf("[Broadcaster] Starting FFmpeg for port %d\n", b.port)
+	stderr, _ := b.cmd.StderrPipe()
+	LogFFmpegStderr(Log.Printf, stderr, fmt.Sprintf("FFmpeg:CH-%d", b.port))
+
 	if err := b.cmd.Start(); err != nil {
 		return err
 	}
@@ -198,12 +236,31 @@ func (b *Broadcaster) Start() error {
 		b.relayLoop(stdout)
 	}()
 
+	overlayPath := b.OverlayFile
 	go func() {
 		<-done
 		if b.cmd != nil {
 			b.cmd.Wait() //nolint:errcheck
 		}
+		if overlayPath != "" {
+			_ = os.Remove(overlayPath)
+		}
 	}()
+
+	status := fmt.Sprintf("[Broadcaster] Port %d: READY", b.port)
+	if b.OverlayText != "" {
+		status += fmt.Sprintf(" | Bug: %s", b.OverlayText)
+	}
+	if b.audioMeta != nil && (b.audioMeta.Codec == "ac3" || b.audioMeta.Codec == "eac3") {
+		if !b.ForceStereo || b.audioMeta.Channels <= 2 {
+			status += " | Audio: Native"
+		} else {
+			status += " | Audio: Transcode (Downmix)"
+		}
+	} else {
+		status += " | Audio: Transcode"
+	}
+	Log.Println(status)
 
 	return nil
 }
@@ -275,16 +332,13 @@ func (b *Broadcaster) connSender(client *streamClient) {
 
 // relayLoop reads the FFmpeg stdout and writes it to the shared hub.
 func (b *Broadcaster) relayLoop(r io.Reader) {
-	const packetSize = 188
-	const chunkPackets = 50
-	chunkSize := packetSize * chunkPackets
-
+	defer b.closeClients()
 	for {
-		buf := make([]byte, chunkSize)
+		buf := make([]byte, 188*7) // 1316 bytes (fits in 1500 MTU)
 		_, err := io.ReadFull(r, buf)
 		if err != nil {
 			if err != io.EOF && err != io.ErrUnexpectedEOF {
-				fmt.Printf("[Broadcaster] Relay loop error on port %d: %v\n", b.port, err)
+				Log.Printf("[Broadcaster] Relay loop error on port %d: %v\n", b.port, err)
 			}
 			return
 		}
@@ -307,19 +361,46 @@ func (b *Broadcaster) stopFFmpeg() {
 	defer b.stopMu.Unlock()
 
 	if b.cmd != nil && b.cmd.Process != nil {
-		fmt.Printf("[Broadcaster] Stopping FFmpeg for port %d\n", b.port)
-		_ = b.cmd.Process.Kill()
+		_ = b.cmd.Process.Signal(os.Interrupt)
+
+		// Give it a short moment to finish gracefully
+		timer := time.AfterFunc(500*time.Millisecond, func() {
+			if b.cmd != nil && b.cmd.Process != nil {
+				_ = b.cmd.Process.Kill()
+			}
+		})
+		defer timer.Stop()
+
+		if b.relayDone != nil {
+			<-b.relayDone
+			b.relayDone = nil
+		}
+
+		// CRITICAL: Cleanup for the robust textfile callsign temporary file.
+		if b.OverlayFile != "" {
+			_ = os.Remove(b.OverlayFile)
+			b.OverlayFile = ""
+		}
 		b.cmd = nil
 	}
-	if b.relayDone != nil {
-		<-b.relayDone
-		b.relayDone = nil
+}
+
+// closeClients forcefully disconnects all active TCP/HTTP stream clients.
+func (b *Broadcaster) closeClients() {
+	b.mu.Lock()
+	defer b.mu.Unlock()
+
+	for conn := range b.conns {
+		_ = conn.Close()
 	}
+	// Re-initialize the conns map
+	b.conns = make(map[net.Conn]*streamClient)
 }
 
 // Stop terminates all streaming processes and closes all client connections.
 func (b *Broadcaster) Stop() error {
 	b.stopFFmpeg()
+	b.closeClients()
 
 	b.mu.Lock()
 	defer b.mu.Unlock()
@@ -335,16 +416,19 @@ func (b *Broadcaster) Stop() error {
 		_ = b.udpConn.Close()
 		b.udpConn = nil
 	}
-	for conn := range b.conns {
-		_ = conn.Close()
-	}
-	b.conns = make(map[net.Conn]*streamClient)
 
 	if b.playlistFile != "" {
 		_ = os.Remove(b.playlistFile)
 		b.playlistFile = ""
 	}
 	return nil
+}
+
+// Repair restarts the FFmpeg process for the current media item without advancing the list.
+func (b *Broadcaster) Repair() error {
+	b.stopFFmpeg()
+	b.closeClients()
+	return b.Start()
 }
 
 // Advance skips to the next item in the media list and restarts the broadcast.
@@ -354,6 +438,7 @@ func (b *Broadcaster) Advance() error {
 		return err
 	}
 	b.stopFFmpeg()
+	b.closeClients()
 	return b.Start()
 }
 
@@ -364,6 +449,7 @@ func (b *Broadcaster) Rewind() error {
 		return err
 	}
 	b.stopFFmpeg()
+	b.closeClients()
 	return b.Start()
 }
 
@@ -375,52 +461,4 @@ func (b *Broadcaster) StreamURL() string {
 // Hub returns the shared stream hub managed by this broadcaster.
 func (b *Broadcaster) Hub() *StreamHub {
 	return b.hub
-}
-
-var (
-	hevcEncoderOnce sync.Once
-	detectedEncoder string
-)
-
-// BestHEVCEncoder identifies the optimal hardware encoder available on the host system.
-func BestHEVCEncoder() (string, []string) {
-	hevcEncoderOnce.Do(func() {
-		out, err := exec.Command("ffmpeg", "-encoders").Output()
-		if err != nil {
-			detectedEncoder = "libx265"
-			return
-		}
-
-		encoders := string(out)
-		priority := []string{
-			"hevc_nvenc",
-			"hevc_qsv",
-			"hevc_amf",
-			"hevc_vaapi",
-			"hevc_mf",
-		}
-
-		for _, enc := range priority {
-			if strings.Contains(encoders, enc) {
-				detectedEncoder = enc
-				return
-			}
-		}
-		detectedEncoder = "libx265"
-	})
-
-	switch detectedEncoder {
-	case "hevc_nvenc":
-		return "hevc_nvenc", []string{"-preset", "p1"}
-	case "hevc_qsv":
-		return "hevc_qsv", []string{"-preset", "faster"}
-	case "hevc_amf":
-		return "hevc_amf", []string{"-quality", "speed"}
-	case "hevc_vaapi":
-		return "hevc_vaapi", []string{}
-	case "hevc_mf":
-		return "hevc_mf", []string{}
-	default:
-		return "libx265", []string{"-preset", "ultrafast"}
-	}
 }

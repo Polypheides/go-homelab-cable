@@ -180,3 +180,35 @@ func (c *Client) LiveNext() (domain.Channel, error) {
 
 	return channel, nil
 }
+
+// LivePrev rewinds the currently tuned live channel to the previous media item.
+func (c *Client) LivePrev() (domain.Channel, error) {
+	var channel domain.Channel
+	req, err := http.NewRequest(http.MethodPut, fmt.Sprintf("%snetworks/%s/live/previous", c.Server, url.PathEscape(c.network)), nil)
+	if err != nil {
+		return channel, err
+	}
+	req.Header.Set("Content-Type", "application/json")
+
+	resp, err := c.c.Do(req)
+	if err != nil {
+		return channel, err
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		return channel, errors.Errorf("server error %d: %s", resp.StatusCode, readBody(resp))
+	}
+
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return channel, err
+	}
+
+	err = json.Unmarshal(body, &channel)
+	if err != nil {
+		return channel, err
+	}
+
+	return channel, nil
+}

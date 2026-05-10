@@ -1,15 +1,13 @@
 package server
 
 import (
-	"fmt"
 	"io"
 	"net/http"
+	"net/url"
 	"sort"
-	"strings"
 	"text/template"
 
 	"github.com/Polypheides/go-homelab-cable/domain"
-	"github.com/Polypheides/go-homelab-cable/network"
 	"github.com/labstack/echo/v4"
 )
 
@@ -27,66 +25,41 @@ type Meta struct {
 	Owner string
 }
 
-// getHtmxStatus renders the main dashboard view with the current status of all channels.
-func (s *Server) getHtmxStatus(e echo.Context) error {
+func (s *Server) buildStatusData(e echo.Context) interface{} {
 	channels := s.Network.Channels()
 	models := make([]domain.Channel, 0, len(channels))
-	host := e.Request().Host
-	if host == "" || host == "localhost" || host == "127.0.0.1" || strings.HasPrefix(host, "127.0.0.1:") || strings.HasPrefix(host, "localhost:") {
-		host = network.GetLocalIP() + ":" + s.Network.WebServerPort
-	}
+	host := s.getHost(e)
 	for _, c := range channels {
 		models = append(models, domain.ToChannelModel(s.Network, c, host))
 	}
 
 	sort.Slice(models, func(i, j int) bool {
-		return models[i].StreamURL < models[j].StreamURL
+		return models[i].Number < models[j].Number // Sort by channel number for the remote
 	})
 
-	data := struct {
-		Name     string
-		Owner    string
-		Channels []domain.Channel
+	return struct {
+		Name            string
+		Owner           string
+		CallSign        string
+		CallSignEscaped string
+		Channels        []domain.Channel
 	}{
-		Name:     s.Network.Name,
-		Owner:    s.Network.Owner,
-		Channels: models,
+		Name:            s.Network.Name,
+		Owner:           s.Network.Owner,
+		CallSign:        s.Network.CallSign,
+		CallSignEscaped: url.PathEscape(s.Network.CallSign),
+		Channels:        models,
 	}
-
-	return e.Render(http.StatusOK, "status.html", data)
 }
 
-// htmxPlayNext advances the specified channel via an HTMX request.
-func (s *Server) htmxPlayNext(e echo.Context) error {
-	c, err := s.Network.Channel(e.Param("channel_id"))
-	if err == nil {
-		next := c.PlayNext()
-		fmt.Printf("[Next] CH %d -> %s\n", c.Number, next)
-		s.logAction("PUT", e.Request().URL.Path, c)
-	}
-	return e.NoContent(http.StatusNoContent)
+// getHtmxStatus renders the main dashboard view with the current status of all channels.
+func (s *Server) getHtmxStatus(e echo.Context) error {
+	return e.Render(http.StatusOK, "status.html", s.buildStatusData(e))
 }
 
-// htmxPlayLiveNext advances the live channel via an HTMX request.
-func (s *Server) htmxPlayLiveNext(e echo.Context) error {
-	c, err := s.Network.CurrentChannel()
-	if err == nil {
-		next := c.PlayNext()
-		fmt.Printf("[LiveNext] CH %d -> %s\n", c.Number, next)
-		s.logAction("PUT", e.Request().URL.Path, c)
-	}
-	return e.NoContent(http.StatusNoContent)
-}
-
-// htmxPlayPrevious rewinds the specified channel via an HTMX request.
-func (s *Server) htmxPlayPrevious(e echo.Context) error {
-	c, err := s.Network.Channel(e.Param("channel_id"))
-	if err == nil {
-		prev := c.PlayPrevious()
-		fmt.Printf("[Prev] CH %d -> %s\n", c.Number, prev)
-		s.logAction("PUT", e.Request().URL.Path, c)
-	}
-	return e.NoContent(http.StatusNoContent)
+// getHtmxRemoteStatus renders the mobile remote control view.
+func (s *Server) getHtmxRemoteStatus(e echo.Context) error {
+	return e.Render(http.StatusOK, "remote_status.html", s.buildStatusData(e))
 }
 
 // htmxTune sets a new channel as the live tuned channel via an HTMX request.
@@ -98,5 +71,6 @@ func (s *Server) htmxTune(e echo.Context) error {
 	if err == nil {
 		s.logAction("TUNE", e.Request().URL.Path, c)
 	}
+	e.Response().Header().Set("HX-Trigger", "refreshStatus")
 	return e.NoContent(http.StatusNoContent)
 }
